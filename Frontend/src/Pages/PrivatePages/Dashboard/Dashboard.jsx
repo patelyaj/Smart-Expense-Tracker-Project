@@ -1,5 +1,5 @@
 import React from 'react';
-import { logoutUser } from '../../redux/Features/authSlice';
+import { logoutUser } from '../../../redux/Features/authSlice';
 import { useDispatch } from 'react-redux';
 function Dashboard() {
   const dispatch = useDispatch();
@@ -7,6 +7,15 @@ function Dashboard() {
     <div>
       <h1>Overview</h1>
       <button onClick={() => dispatch(logoutUser())}>logout</button>
+
+
+      {/* logo */}
+      {/* overview */}
+      {/* transaction */}
+      {/* budget */}
+      {/* profile */}
+
+      
     </div>
   );
 }
