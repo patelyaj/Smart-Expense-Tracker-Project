@@ -5,7 +5,8 @@ const userSchema = new mongoose.Schema(
     username: String,
     email: String,
     mobileno: String,
-    password: String
+    password: String,
+    theme: { type: String, enum: ['light', 'dark'], default: 'light' }
   },
   { timestamps: true }
 );

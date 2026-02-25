@@ -5,7 +5,7 @@ import PrivateRoute from './Pages/routes/PrivateRoute'
 import Home from './Pages/PublicPages/Home'
 import Login from './Pages/PublicPages/Login'
 import Signup from './Pages/PublicPages/Signup'
-import Dashboard from './Pages/PrivatePages/Dashboard'
+import Dashboard from './Pages/PrivatePages/Dashboard/Dashboard'
 function App() {
   return <>
     <BrowserRouter>
