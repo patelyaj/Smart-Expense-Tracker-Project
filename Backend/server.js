@@ -3,8 +3,12 @@ import cors from 'cors';
 import { configDotenv } from 'dotenv';
 import connectDb from './config/configDb.js';
 import authRoutes from './routes/authRoutes.js';
+import balanceRouter from './routes/balanceRoutes.js';
+import transactionRouter from './routes/transactionRoutes.js';
+
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+// import 
 
 configDotenv();
 connectDb();
@@ -22,7 +26,9 @@ app.use(cors({
     credentials: true
 }));
 
-app.use('/users',authRoutes);
+app.use('/expensetracker/users',authRoutes);
+app.use('/expensetracker/balance/',balanceRouter);
+app.use('/expensetracker/transactions/',transactionRouter);
 
 app.get('/checkbackend',(req,res)=>{
     try {

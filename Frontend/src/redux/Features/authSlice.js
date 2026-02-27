@@ -7,7 +7,7 @@ export const loginUser = createAsyncThunk(
   'auth/login',
   async (userData, { rejectWithValue }) => {
     try {
-      const { data } = await axios.post('http://localhost:5000/users/login', userData,{withCredentials:true});  
+      const { data } = await axios.post('http://localhost:5000/expensetracker/users/login', userData,{withCredentials:true});  
 
       console.log('login',data);
       localStorage.setItem('userInfo', JSON.stringify(data));
@@ -27,7 +27,7 @@ export const registerUser = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     try {
       console.log("thunk called");
-      const { data } = await axios.post('http://localhost:5000/users/signup', userData,{withCredentials:true});
+      const { data } = await axios.post('http://localhost:5000/expensetracker/users/signup', userData,{withCredentials:true});
       console.log("regis",data);
       localStorage.setItem('userInfo', JSON.stringify(data));
 
@@ -45,7 +45,7 @@ export const logoutUser = createAsyncThunk(
   'auth/logout',
   async(_,{rejectWithValue})=>{
     try {
-      const {data} = await axios.post('http://localhost:5000/users/logout', {} , {withCredentials:true});
+      const {data} = await axios.post('http://localhost:5000/expensetracker/users/logout', {} , {withCredentials:true});
       console.log('logout res',data.message);
       return data;
     } catch (error) {
@@ -140,7 +140,6 @@ const authSlice = createSlice({
     })
   },
 });
-
 
 export default authSlice.reducer;
 export const { clearStatus } = authSlice.actions;
