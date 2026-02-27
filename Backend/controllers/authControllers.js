@@ -1,7 +1,10 @@
 import User from '../models/userModel.js';
+import Balance from '../models/balanceModel.js';
+import Category from '../models/categoryModel.js';
 import bcrypt from 'bcrypt';
 import generateTokenAndSetCookie from '../utils/generateToken.js';
 import { userValidationSchema } from '../validators/uservalidation.js';
+import { defaultCategoriesList } from '../utils/defaultCategories.js';
 // post registe user
 export const registerUser = async (req, res) => {
 
@@ -52,6 +55,32 @@ export const registerUser = async (req, res) => {
         if(newUser){
             await newUser.save();
             
+            // Create initial balance for the new user
+            await Balance.create({
+                userId: newUser._id,
+                totalBalance: 0
+            });
+
+            // Create default categories for the new user
+            // const defaultCategories = [
+            //     // Expenses
+            //     { userId: newUser._id, name: "Food & Dining", type: "expense" },
+            //     { userId: newUser._id, name: "Transportation", type: "expense" },
+            //     { userId: newUser._id, name: "Housing & Utilities", type: "expense" },
+            //     { userId: newUser._id, name: "Entertainment", type: "expense" },
+            //     { userId: newUser._id, name: "Healthcare", type: "expense" },
+            //     // Incomes
+            //     { userId: newUser._id, name: "Salary", type: "income" },
+            //     { userId: newUser._id, name: "Freelance", type: "income" },
+            //     { userId: newUser._id, name: "Investments", type: "income" }
+            // ];
+
+            //////////////////////////////////////////
+            ///////////////////////////////////////////
+            // optimisation for inserting default categories for new user with defaultCategoriesList from utils
+            const categoriesWithUserId = defaultCategoriesList.map(cat => ({ ...cat, userId: newUser._id }));
+            await Category.insertMany(categoriesWithUserId);
+
             // Attach token as HttpOnly(res.cookie( , , {httpOnly : true})) cookie 
             generateTokenAndSetCookie(newUser._id,res);
             
