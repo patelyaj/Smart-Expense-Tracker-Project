@@ -8,10 +8,12 @@ const budgetSchema = new mongoose.Schema({
     index: true
   },
 
-  category: {
-    type: String,
-    required: true
-  },
+    category: { 
+      type : mongoose.Schema.Types.ObjectId, 
+      ref: 'Category', 
+      required: true 
+    },
+  
 
   limit: {
     type: Number,
