@@ -10,23 +10,24 @@ import Budget from "../models/budgetModel.js";
 import { defaultCategoriesList } from "../utils/defaultCategories.js";
 import { configDotenv } from "dotenv";
 
-configDotenv(); // Load environment variables from .env file
+configDotenv();
 
-// Make sure this path points to the utils file we created earlier!
+// ------------------ CONFIG ------------------
 
-// --- CONFIGURATION ---
-// Replace with your MongoDB connection string if not using process.env
-const MONGO_URI = process.env.MONGO_URI || ""; 
+const MONGO_URI = process.env.MONGO_URI || "";
+
 if (!MONGO_URI) {
-    console.error("❌ MONGO_URI is not defined in environment variables!");
-    process.exit(1);
+  console.error("❌ MONGO_URI is not defined in environment variables!");
+  process.exit(1);
 }
-console.log("Mongo URI from env:", MONGO_URI);
 
-// Helper functions for dynamic data generation
-const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-const getRandomElement = (arr) => arr[Math.floor(Math.random() * arr.length)];
-const getRandomDate = (start, end) => new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+// ------------------ HELPERS ------------------
+
+const getRandomInt = (min, max) =>
+  Math.floor(Math.random() * (max - min + 1)) + min;
+
+const getRandomElement = (arr) =>
+  arr[Math.floor(Math.random() * arr.length)];
 
 const seedDatabase = async () => {
   try {
@@ -34,7 +35,7 @@ const seedDatabase = async () => {
     await mongoose.connect(MONGO_URI);
     console.log("✅ Database Connected!");
 
-    // 1. CLEAR EXISTING DATA (Be careful running this in production!)
+    // ------------------ CLEAR OLD DATA ------------------
     console.log("🧹 Clearing old data...");
     await User.deleteMany({});
     await Balance.deleteMany({});
@@ -42,10 +43,10 @@ const seedDatabase = async () => {
     await Transaction.deleteMany({});
     await Budget.deleteMany({});
 
-    // 2. CREATE A DUMMY USER
+    // ------------------ CREATE USER ------------------
     console.log("👤 Creating dummy user...");
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash("password123", salt); // Password is: password123
+    const hashedPassword = await bcrypt.hash("password123", salt);
 
     const dummyUser = await User.create({
       username: "JohnDoe",
@@ -55,99 +56,176 @@ const seedDatabase = async () => {
       theme: "light",
     });
 
-    // 3. CREATE CATEGORIES
+    // ------------------ CREATE CATEGORIES ------------------
     console.log("📁 Creating categories...");
-    const categoriesWithUserId = defaultCategoriesList.map(cat => ({
+    const categoriesWithUserId = defaultCategoriesList.map((cat) => ({
       ...cat,
       userId: dummyUser._id,
     }));
-    const savedCategories = await Category.insertMany(categoriesWithUserId);
 
-    // Separate categories by type for easier transaction generation
-    const incomeCategories = savedCategories.filter(c => c.type === "income");
-    const expenseCategories = savedCategories.filter(c => c.type === "expense");
+    const savedCategories = await Category.insertMany(
+      categoriesWithUserId
+    );
 
-    // 4. GENERATE DYNAMIC TRANSACTIONS
-    console.log("💸 Generating realistic transactions...");
+    const incomeCategories = savedCategories.filter(
+      (c) => c.type === "income"
+    );
+
+    const expenseCategories = savedCategories.filter(
+      (c) => c.type === "expense"
+    );
+
+    // ------------------ DATE RANGE ------------------
+    const startDate = new Date("2026-02-01T00:00:00.000Z");
+    const endDate = new Date();
+
+    // ------------------ GENERATE TRANSACTIONS ------------------
+    console.log("💸 Generating realistic transactions from Feb 1, 2026 → Today...");
+
     const transactions = [];
     let calculatedBalance = 0;
 
-    const descriptions = {
-        "Food & Dining": ["McDonalds", "Starbucks", "Dinner at Olive Garden", "Lunch with client"],
-        "Groceries": ["Walmart", "Whole Foods", "Local Market"],
-        "Transportation": ["Uber", "Gas Station", "Subway ticket", "Car wash"],
-        "Salary": ["Monthly Salary", "Bonus"],
-        "Freelance": ["Upwork Project", "Website design client"],
-    };
+    // Create month list
+    const months = [];
+    let current = new Date(startDate);
 
-    // Generate 40 random transactions over the last 90 days
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    while (current <= endDate) {
+      months.push(new Date(current));
+      current.setMonth(current.getMonth() + 1);
+    }
 
-    for (let i = 0; i < 40; i++) {
-      const isExpense = Math.random() > 0.2; // 80% chance of expense, 20% income
-      const type = isExpense ? "expense" : "income";
-      const category = isExpense ? getRandomElement(expenseCategories) : getRandomElement(incomeCategories);
-      
-      // Expenses between $5-$200, Incomes between $500-$3000
-      const amount = isExpense ? getRandomInt(5, 200) : getRandomInt(500, 3000); 
-      
-      const defaultDesc = isExpense ? "General Expense" : "General Income";
-      const descList = descriptions[category.name] || [defaultDesc];
+    for (let monthDate of months) {
+      const year = monthDate.getFullYear();
+      const month = monthDate.getMonth();
 
-      const transaction = {
-        userId: dummyUser._id,
-        amount: amount,
-        type: type,
-        category: category._id,
-        date: getRandomDate(ninetyDaysAgo, new Date()), // Random date in last 90 days
-        description: getRandomElement(descList),
-      };
+      // 1️⃣ Monthly Salary (1st)
+      const salaryCategory = incomeCategories.find((c) =>
+        c.name.toLowerCase().includes("salary")
+      );
 
-      transactions.push(transaction);
+      if (salaryCategory) {
+        const salaryAmount = getRandomInt(2500, 5000);
 
-      // Keep track of total balance accurately!
-      if (type === "income") {
-        calculatedBalance += amount;
-      } else {
+        transactions.push({
+          userId: dummyUser._id,
+          amount: salaryAmount,
+          type: "income",
+          category: salaryCategory._id,
+          date: new Date(year, month, 1),
+          description: "Monthly Salary",
+        });
+
+        calculatedBalance += salaryAmount;
+      }
+
+      // 2️⃣ Monthly Rent (5th)
+      const rentCategory = expenseCategories.find((c) =>
+        c.name.toLowerCase().includes("rent")
+      );
+
+      if (rentCategory) {
+        const rentAmount = getRandomInt(800, 1500);
+
+        transactions.push({
+          userId: dummyUser._id,
+          amount: rentAmount,
+          type: "expense",
+          category: rentCategory._id,
+          date: new Date(year, month, 5),
+          description: "Monthly Rent",
+        });
+
+        calculatedBalance -= rentAmount;
+      }
+
+      // 3️⃣ Random Daily Expenses (10–20 per month)
+      const randomExpenseCount = getRandomInt(10, 20);
+
+      for (let i = 0; i < randomExpenseCount; i++) {
+        const randomCategory = getRandomElement(expenseCategories);
+        const amount = getRandomInt(10, 300);
+        const randomDay = getRandomInt(1, 28);
+
+        const transactionDate = new Date(year, month, randomDay);
+
+        if (transactionDate > endDate) continue;
+
+        transactions.push({
+          userId: dummyUser._id,
+          amount,
+          type: "expense",
+          category: randomCategory._id,
+          date: transactionDate,
+          description: "Daily Expense",
+        });
+
         calculatedBalance -= amount;
+      }
+
+      // 4️⃣ Occasional Freelance Income (random months)
+      if (Math.random() > 0.6) {
+        const freelanceCategory = incomeCategories.find((c) =>
+          c.name.toLowerCase().includes("freelance")
+        );
+
+        if (freelanceCategory) {
+          const freelanceAmount = getRandomInt(500, 2000);
+
+          transactions.push({
+            userId: dummyUser._id,
+            amount: freelanceAmount,
+            type: "income",
+            category: freelanceCategory._id,
+            date: new Date(year, month, getRandomInt(10, 25)),
+            description: "Freelance Project",
+          });
+
+          calculatedBalance += freelanceAmount;
+        }
       }
     }
 
     await Transaction.insertMany(transactions);
 
-    // 5. CREATE BALANCE BASED ON GENERATED TRANSACTIONS
-    console.log(`🏦 Setting final balance to: $${calculatedBalance}`);
+    console.log(`📦 Inserted ${transactions.length} transactions`);
+    console.log(`🏦 Final Calculated Balance: $${calculatedBalance}`);
+
+    // ------------------ CREATE BALANCE ------------------
     await Balance.create({
       userId: dummyUser._id,
       totalBalance: calculatedBalance,
     });
 
-    // 6. CREATE A REALISTIC BUDGET
-    console.log("📊 Setting up a budget...");
-    const foodCategory = expenseCategories.find(c => c.name === "Food & Dining");
-    
-    // Create a budget from the 1st of the current month to the end of the month
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    // ------------------ CREATE MONTHLY BUDGETS ------------------
+    console.log("📊 Creating monthly budgets...");
 
-    if (foodCategory) {
-        await Budget.create({
-            userId: dummyUser._id,
-            category: foodCategory._id,
-            limit: 500, // $500 limit on food
-            period: "monthly",
-            startDate: startOfMonth,
-            endDate: endOfMonth
-        });
+    const startOfCurrentMonth = new Date(
+      endDate.getFullYear(),
+      endDate.getMonth(),
+      1
+    );
+
+    const endOfCurrentMonth = new Date(
+      endDate.getFullYear(),
+      endDate.getMonth() + 1,
+      0
+    );
+
+    for (let category of expenseCategories) {
+      await Budget.create({
+        userId: dummyUser._id,
+        category: category._id,
+        limit: getRandomInt(300, 1500),
+        period: "monthly",
+        startDate: startOfCurrentMonth,
+        endDate: endOfCurrentMonth,
+      });
     }
 
     console.log("🎉 Database Successfully Seeded!");
-    process.exit();
-    
+    process.exit(0);
   } catch (error) {
-    console.error("❌ Seeding Error: ", error);
+    console.error("❌ Seeding Error:", error);
     process.exit(1);
   }
 };

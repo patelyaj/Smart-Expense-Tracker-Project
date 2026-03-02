@@ -108,10 +108,10 @@ export const deleteTransaction = async (req, res) => {
 export const fetchIncomeExpense = async (req, res) => {
     console.log("hi");
     try {
-        const userId = req.user.id;
+        const userId = req.user.userId;
+        console.log(userId,"u");
         const { startDate, endDate } = req.query;
-
-        console.log("fetch income expense api called", req.params, req.query);
+        console.log(startDate,"done",endDate);
 
         const matchStage = {
             // CRITICAL: aggregate() requires manual casting to ObjectId
@@ -149,6 +149,8 @@ export const fetchIncomeExpense = async (req, res) => {
             if (item._id == 'income') income = item.totalAmount;
             if (item._id == 'expense') expense = item.totalAmount;
         });
+
+        console.log("Income:", income, "Expense:", expense);
 
         res.status(200).json({ 
             income, 

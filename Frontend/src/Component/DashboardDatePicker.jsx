@@ -92,13 +92,7 @@ export default function DashboardDatePicker({ onClose }) {
 
           <Divider sx={{ my: 1 }} />
 
-          <Button variant="contained" onClick={onClose}>
-            Apply
-          </Button>
-
-          <Button onClick={onClose}>
-            Cancel
-          </Button>
+         
         </Stack>
       </Stack>
     </Box>

@@ -1,9 +1,11 @@
 import React from 'react';
-
+import Navbar from '../../../Component/DashboardComponents/Navbar';
 function Budget() {
     return (
         <div>
-            <h1>Budget</h1>
+            <Navbar />
+
+            <h1>Budgets</h1>
 
             {/* set multiple budget */}
         </div>

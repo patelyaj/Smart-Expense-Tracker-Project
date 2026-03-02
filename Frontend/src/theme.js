@@ -1,28 +1,27 @@
-import { createTheme } from '@mui/material/styles';
+import { createTheme } from "@mui/material/styles";
 
-const theme = createTheme({
+export const lightTheme = createTheme({
   palette: {
+    mode: "light",
     primary: {
-      main: '#5dda63',
-      blue: '#6ddcfd',
+      main: "#1976d2", // Blue
     },
-    secondary: {
-      main: '#c62828', 
-    },
-
     background: {
-      default: '#f5f7fa', // Dashboard background
-      nav: '#ffffff',   // Navbar & Card backgrounds
+      default: "#f4f6f8", // Light gray background for the app
+      paper: "#ffffff",   // White background for cards
     },
-    text: {
-      primary: '#333333',
-      secondary: '#555555',
-    },
-  },
-  typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    // You can also override heading weights here globally
   },
 });
 
-export default theme;
+export const darkTheme = createTheme({
+  palette: {
+    mode: "dark",
+    primary: {
+      main: "#90caf9", // Lighter blue for dark mode visibility
+    },
+    background: {
+      default: "#121212", // Standard dark background
+      paper: "#1e1e1e",   // Slightly lighter dark for cards
+    },
+  },
+});

@@ -1,0 +1,35 @@
+.profile-container {
+  display: flex;
+  min-height: 90vh;
+  background: #f6f7fb;
+}
+
+.profile-sidebar {
+  width: 250px;
+  background: #fff;
+  padding: 30px 20px;
+  border-right: 1px solid #eee;
+}
+
+.profile-sidebar div {
+  padding: 12px 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  border-radius: 8px;
+  font-weight: 500;
+  color: #6b7a90;
+}
+
+.profile-sidebar div:hover {
+  background: #f2f4f8;
+}
+
+.profile-sidebar .active {
+  color: #00b386;
+  font-weight: 600;
+}
+
+.profile-content {
+  flex: 1;
+  padding: 40px;
+}

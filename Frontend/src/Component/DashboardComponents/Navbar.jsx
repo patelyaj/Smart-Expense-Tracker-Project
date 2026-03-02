@@ -11,30 +11,30 @@ import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
-import { useDispatch } from 'react-redux';
-import { logoutUser } from '../../redux/Features/authSlice';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import { useDispatch, useSelector } from 'react-redux';
+import { logoutUser, toggleTheme } from '../../redux/Features/authSlice'; // Import toggleTheme
 import { useNavigate } from 'react-router-dom';
-
-
-
 
 function Navbar() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  
+  // Grab the current theme mode from Redux
+  const themeMode = useSelector((state) => state.auth.themeMode);
 
   const pages = [
     {label: "Overview", path: "/dashboard"},
     {label: "Transactions", path: "/transactions"}, 
-    {label: "Budgets", path: "/budgets"},
+    {label: "Budgets", path: "/budget"}, // Note: I changed this to /budget based on your App.jsx routes
   ];
 
+  const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+  const userId = userInfo ? userInfo._id : null;
   const settings = [
-    { label: "Profile", path: "/profile/" },
-    { label: "Account", path: "/account" },
-    { label: "Dashboard", path: "/dashboard" },
+    { label: "Profile", path: `/profile/${userId}` },
   ];
-
-
 
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
@@ -45,11 +45,9 @@ function Navbar() {
   const handleCloseUserMenu = () => setAnchorElUser(null);
 
   const handleLogout = () => {
-    // Clear user data from localStorage
     localStorage.removeItem('userInfo');
-
-    // Redirect to login page
     dispatch(logoutUser());
+    navigate('/login');
   };
 
   return (
@@ -57,9 +55,10 @@ function Navbar() {
       position="sticky" 
       elevation={0}
       sx={{ 
-        bgcolor: 'background.nav',
-        borderBottom: '1px solid #eaeaea',
-        color: 'text.primary'
+        bgcolor: 'background.paper', // FIXED: Adapts to light/dark automatically
+        borderBottom: (theme) => `1px solid ${theme.palette.divider}`, // FIXED: Dynamic border color
+        color: 'text.primary',
+        backgroundImage: 'none', // Prevents MUI's default dark mode elevation overlay
       }}
     >
       <Container maxWidth="xl">
@@ -69,14 +68,14 @@ function Navbar() {
             variant="h6"
             noWrap
             component="a"
-            href="/"  
+            href="/dashboard"  
             sx={{
               display: { xs: 'none', md: 'flex' },
               fontWeight: 800,
               letterSpacing: '.1rem',
               color: 'inherit',
               textDecoration: 'none',
-              width: '200px', // Forces a fixed width so the center stays perfectly centered
+              width: '200px',
             }}
           >
             Xpense
@@ -86,9 +85,6 @@ function Navbar() {
           <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
             <IconButton
               size="large"
-              aria-label="open navigation menu"
-              aria-controls="menu-appbar"
-              aria-haspopup="true"
               onClick={handleOpenNavMenu}
               color="inherit"
             >
@@ -108,15 +104,8 @@ function Navbar() {
                 <MenuItem key={page.label} onClick={()=>{
                   handleCloseNavMenu();
                   navigate(page.path);
-                }
-                }>
-                  <Typography 
-                    sx={{ 
-                      textAlign: 'center', 
-                      fontWeight: 500, 
-                      color: 'secondary.main' 
-                    }}
-                  >
+                }}>
+                  <Typography sx={{ textAlign: 'center', fontWeight: 500 }}>
                     {page.label}
                   </Typography>
                 </MenuItem>
@@ -129,7 +118,7 @@ function Navbar() {
             variant="h5"
             noWrap
             component="a"
-            href="/"
+            href="/dashboard"
             sx={{
               mr: 2,
               display: { xs: 'flex', md: 'none' },
@@ -173,8 +162,15 @@ function Navbar() {
             ))}
           </Box>
 
-          {/* User Profile / Avatar */}
-          <Box sx={{ flexGrow: 0, width: { md: '200px' }, display: 'flex', justifyContent: 'flex-end' }}>
+          {/* Right Side Icons (Theme Toggle + Avatar) */}
+          <Box sx={{ flexGrow: 0, width: { md: '200px' }, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1 }}>
+            
+            {/* THEME TOGGLE BUTTON */}
+            <IconButton onClick={() => dispatch(toggleTheme())} color="inherit">
+              {themeMode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
+            </IconButton>
+
+            {/* User Profile / Avatar */}
             <Tooltip title="Open settings">
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
                 <Avatar alt="User Avatar" src="/static/images/avatar/2.jpg" />
@@ -195,7 +191,7 @@ function Navbar() {
               }}
             >
               {settings.map((item) => (
-                <MenuItem key={item} onClick={
+                <MenuItem key={item.label} onClick={
                   ()=>{
                     handleCloseUserMenu();
                     navigate(item.path);
@@ -204,12 +200,8 @@ function Navbar() {
                   <Typography sx={{ textAlign: 'center', fontWeight: 500 }} >{item.label}</Typography>
                 </MenuItem>
               ))}
-                  <MenuItem onClick={() => {
-                    handleCloseUserMenu();
-                    handleLogout();
-                    navigate('/login');
-                  }}>
-                    <Typography sx={{ textAlign: 'center', fontWeight: 500 }} >logout</Typography>
+                  <MenuItem onClick={handleLogout}>
+                    <Typography sx={{ textAlign: 'center', fontWeight: 500 }} >Logout</Typography>
                   </MenuItem>
             </Menu>
           </Box>

@@ -63,9 +63,13 @@ const authSlice = createSlice({
     loading: false,
     error: null,
     success: false,
+    themeMode: localStorage.getItem("themeMode") || "light",
   },
   reducers: {
-    
+    toggleTheme: (state) => {
+            state.themeMode = state.themeMode === "light" ? "dark" : "light";
+            localStorage.setItem("themeMode", state.themeMode);
+        }
     // Non-async reducers
     // logout: (state) => {
     //   localStorage.removeItem('userInfo');
@@ -142,4 +146,4 @@ const authSlice = createSlice({
 });
 
 export default authSlice.reducer;
-export const { clearStatus } = authSlice.actions;
+export const { toggleTheme } = authSlice.actions;

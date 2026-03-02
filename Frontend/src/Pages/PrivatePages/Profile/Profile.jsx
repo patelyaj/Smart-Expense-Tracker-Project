@@ -1,18 +1,53 @@
-import React from 'react';
+import React, { useState } from "react";
+import Navbar from "../../../Component/DashboardComponents/Navbar";
+import Account from "../Account/Account";
+import Categories from "../Category/Categories";
+import ProfileSetting from "../ProfileSetting/ProfileSetting";
+import "./Profile.css";
 
 function Profile() {
-    return (
-        <div>
-            <h1>Profile</h1>
+  const [activeTab, setActiveTab] = useState("account");
 
-            {/* account  */}
-            {/* categories */}
+  return (
+    <div>
+      <Navbar />
 
-            {/* appearence */}
+      <div className="profile-container">
 
-            {/* logout */}
+        {/* Sidebar */}
+        <div className="profile-sidebar">
+          <div
+            className={activeTab === "account" ? "active" : ""}
+            onClick={() => setActiveTab("account")}
+          >
+            Account
+          </div>
+
+          <div
+            className={activeTab === "categories" ? "active" : ""}
+            onClick={() => setActiveTab("categories")}
+          >
+            All Categories
+          </div>
+
+          <div
+            className={activeTab === "profile" ? "active" : ""}
+            onClick={() => setActiveTab("profile")}
+          >
+            Profile Settings
+          </div>
         </div>
-    );
+
+        {/* Right Content */}
+        <div className="profile-content">
+          {activeTab === "account" && <Account />}
+          {activeTab === "categories" && <Categories />}
+          {activeTab === "profile" && <ProfileSetting />}
+        </div>
+
+      </div>
+    </div>
+  );
 }
 
 export default Profile;

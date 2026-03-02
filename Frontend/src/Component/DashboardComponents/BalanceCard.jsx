@@ -20,8 +20,13 @@ const BalanceCard = () => {
             sx={{ 
                 textAlign: 'center', 
                 borderRadius: 4, 
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                // FIXED: Dynamic box shadow for light vs dark mode
+                boxShadow: (theme) => theme.palette.mode === 'dark' 
+                    ? '0 8px 32px rgba(0,0,0,0.4)' // Stronger shadow for dark mode
+                    : '0 8px 32px rgba(0,0,0,0.08)', // Soft shadow for light mode
                 mb: 4,
+                bgcolor: 'background.paper', // Ensures it explicitly uses the theme's card background
+                backgroundImage: 'none', // Prevents default MUI dark mode overlays from messing with your colors
             }}
             >
             <CardContent sx={{ py: 5 }}>
@@ -31,7 +36,8 @@ const BalanceCard = () => {
                         Total Balance   
                     </Typography>
                 </Box>
-                <Typography variant="h3" fontWeight={700} color="primary.blue">
+                {/* FIXED: Changed from primary.blue to primary.main to use the theme colors */}
+                <Typography variant="h3" fontWeight={700} color="primary.main">
                     ${balance.balance}
                 </Typography>
             </CardContent>
@@ -39,4 +45,4 @@ const BalanceCard = () => {
         );
     };
 
-export default BalanceCard; 
+export default BalanceCard;

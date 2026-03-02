@@ -54,9 +54,9 @@ const deleteTransaction = createAsyncThunk(
 
 const fetchIncomeExpense = createAsyncThunk(
     'transaction/fetchIncomeExpense',
-    async ({startDate,endDate}, { rejectWithValue }) => {
+    async ({userId,startDate,endDate}, { rejectWithValue }) => {
         try {
-            const response = await axios.get(`http://localhost:5000/expensetracker/transactions/fetchincomeexpense/`,{params:{startDate,endDate}, withCredentials: true });
+            const response = await axios.get(`http://localhost:5000/expensetracker/transactions/fetchincomeexpense/${userId}`,{params:{startDate,endDate}, withCredentials: true });
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to fetch income and expense summary');

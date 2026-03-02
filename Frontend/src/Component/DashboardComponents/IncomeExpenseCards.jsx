@@ -27,8 +27,10 @@ const IncomeExpenseCards = () => {
   const open = Boolean(anchorEl);
 
   useEffect(() => {
-    dispatch(fetchIncomeExpense({ startDate, endDate }));
-  }, [startDate, endDate, dispatch]);
+    if (userId) {
+      dispatch(fetchIncomeExpense({ userId,startDate, endDate }));
+    }
+  }, [startDate, endDate, dispatch,userId]);
 
   return (
     <Grid container spacing={3} sx={{ mb: 4 }}>

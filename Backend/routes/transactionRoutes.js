@@ -8,6 +8,6 @@ router.get('/fetchtransactions/:id',verifyToken ,fetchTransactions);
 router.post('/addtransaction',verifyToken,addTransaction);
 router.patch('/edittransaction/:id',verifyToken,addTransaction);
 router.delete('/deletetransaction/:id',verifyToken,deleteTransaction);
-router.get('/fetchincomeexpense',verifyToken,fetchIncomeExpense);
+router.get('/fetchincomeexpense/:id',verifyToken,fetchIncomeExpense);
 
 export default router;

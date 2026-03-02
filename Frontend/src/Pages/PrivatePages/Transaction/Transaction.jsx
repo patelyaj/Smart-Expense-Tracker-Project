@@ -1,109 +1,281 @@
-import React, { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import Navbar from '../../../Component/DashboardComponents/Navbar';
-import DashboardDatePicker from '../../../Component/DashboardDatePicker';
-import './Transaction.css'; 
-import { fetchTransactions, addTransaction, editTransaction, deleteTransaction } from '../../../redux/Features/transactionSlice';
+import React, { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Popover } from "@mui/material";
+import dayjs from "dayjs";
+import Navbar from "../../../Component/DashboardComponents/Navbar";
+import DashboardDatePicker from "../../../Component/DashboardDatePicker";
+import TransactionModal from "./TransactionModal";
+import {
+  fetchTransactions,
+  deleteTransaction,
+  fetchIncomeExpense
+} from "../../../redux/Features/transactionSlice";
+import "./Transaction.css";
 
 const Transaction = () => {
   const dispatch = useDispatch();
-  //   const
 
-  // TODO: Bring in your Redux state for transactions here
-  const { transactions, status , isError } = useSelector((state) => state.transaction);
+  const { transactions, status } = useSelector(
+    (state) => state.transaction
+  );
 
-  // Separate state hooks for startDate and endDate
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
+  const { startDate, endDate } = useSelector(
+    (state) => state.date
+  );
 
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const userId = JSON.parse(
+    localStorage.getItem("userInfo")
+  )?._id;
 
-  // Lifecycle hook to fetch transactions when the page loads or date range changes
-  useEffect(() => {
+  // Modal states
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editData, setEditData] = useState(null);
 
-  }, [startDate,endDate, dispatch]);
+  // Filter states
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [amountRange, setAmountRange] = useState([0, 10000]);
 
-  // Handlers
-  const handleOpenAddModal = () => {
+  // Date popover
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
 
-    setIsAddModalOpen(true);
+  const handleOpenDate = (event) => {
+    setAnchorEl(event.currentTarget);
   };
 
-  const handleDateChange = () => {
-    
+  const handleCloseDate = () => {
+    setAnchorEl(null);
+  };
+
+  // 🔥 Fetch transactions when date changes
+  useEffect(() => {
+    if (userId && startDate && endDate) {
+      dispatch(
+        fetchTransactions({
+          userId,
+          startDate,
+          endDate
+        })
+      );
+    }
+  }, [startDate, endDate, dispatch, userId]);
+
+  // 🔹 Local filtering
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((txn) => {
+      const matchesCategory =
+        selectedCategory === "all" ||
+        txn.category === selectedCategory;
+
+      const matchesAmount =
+        txn.amount >= amountRange[0] &&
+        txn.amount <= amountRange[1];
+
+      return matchesCategory && matchesAmount;
+    });
+  }, [transactions, selectedCategory, amountRange]);
+
+  // 🔹 Group by date
+  const groupedTransactions = useMemo(() => {
+    const groups = {};
+
+    filteredTransactions.forEach((txn) => {
+      const dateKey = dayjs(txn.date).format("MMMM D, YYYY");
+
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
+      }
+
+      groups[dateKey].push(txn);
+    });
+
+    return groups;
+  }, [filteredTransactions]);
+
+  // 🔥 Delete Handler
+  const handleDelete = async (txnId) => {
+    await dispatch(deleteTransaction(txnId));
+
+    // Refresh everything
+    dispatch(fetchTransactions({ userId, startDate, endDate }));
+    dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
   };
 
   return (
-    <div className="transaction-page-container">
-      <Navbar/>
-      <div className="transaction-header">
-        <h2>Transactions</h2>
-        
-        <div className="transaction-controls">
-          {/* Reusing your Dashboard Date Picker */}
-          <div className="date-picker-wrapper">
-            <DashboardDatePicker 
-              onChange={handleDateChange} 
-              // Pass any other necessary props your DatePicker requires
-            />
+    <div className="transaction-page">
+      <Navbar />
+
+      <div className="transaction-container">
+
+        {/* HEADER */}
+        <div className="transaction-header">
+          <h2>Transactions</h2>
+        </div>
+
+        {/* FILTER SECTION */}
+        <div className="filter-box">
+          <div className="filter-row">
+
+            <div className="filter-item">
+              <label>By category</label>
+              <select
+                value={selectedCategory}
+                onChange={(e) =>
+                  setSelectedCategory(e.target.value)
+                }
+              >
+                <option value="all">All categories</option>
+                <option value="food">Food</option>
+                <option value="rent">Rent</option>
+                <option value="transport">Transport</option>
+                <option value="salary">Salary</option>
+              </select>
+            </div>
+
+            <div className="filter-item">
+              <label>By amount</label>
+              <input
+                type="range"
+                min="0"
+                max="10000"
+                value={amountRange[1]}
+                onChange={(e) =>
+                  setAmountRange([0, Number(e.target.value)])
+                }
+              />
+              <span>0 - ${amountRange[1]}</span>
+            </div>
+
+            <div className="filter-item date-filter">
+              <label>Date</label>
+              <button
+                className="date-btn"
+                onClick={handleOpenDate}
+              >
+                {dayjs(startDate).format("MMM D, YYYY")} –{" "}
+                {dayjs(endDate).format("MMM D, YYYY")} 📅
+              </button>
+            </div>
+
+            <button
+              className="reset-btn"
+              onClick={() => {
+                setSelectedCategory("all");
+                setAmountRange([0, 10000]);
+              }}
+            >
+              Reset Filters
+            </button>
+
           </div>
 
-          <button 
-            className="add-transaction-btn" 
-            onClick={handleOpenAddModal}
+          <Popover
+            open={open}
+            anchorEl={anchorEl}
+            onClose={handleCloseDate}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "right",
+            }}
           >
-            + Add Transaction
-          </button>
+            <DashboardDatePicker onClose={handleCloseDate} />
+          </Popover>
+        </div>
+
+        {/* ADD BUTTON */}
+        <button
+          className="add-btn"
+          onClick={() => {
+            setEditData(null);
+            setIsModalOpen(true);
+          }}
+        >
+          + Add Transaction
+        </button>
+
+        {/* TRANSACTION LIST */}
+        <div className="transaction-list">
+
+          {status === "loading" && <p>Loading...</p>}
+
+          {Object.keys(groupedTransactions).length === 0 && (
+            <p>No transactions found</p>
+          )}
+
+          {Object.entries(groupedTransactions).map(
+            ([date, txns]) => (
+              <div key={date} className="transaction-date-group">
+
+                <h4 className="date-header">{date}</h4>
+
+                {txns.map((txn) => (
+                  <div
+                    key={txn._id}
+                    className="transaction-item"
+                  >
+                    <div className="left">
+                      <div className="circle-icon" />
+                      <div>
+                        <p className="title">
+                          {txn.description || "Transaction"}
+                        </p>
+                        <span className="category">
+                          {txn.type}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="right">
+                      <div
+                        className={`amount ${
+                          txn.type === "income"
+                            ? "income"
+                            : "expense"
+                        }`}
+                      >
+                        {txn.type === "income" ? "+" : "-"}$
+                        {txn.amount}
+                      </div>
+
+                      <div className="actions">
+                        <button
+                          onClick={() => {
+                            setEditData(txn);
+                            setIsModalOpen(true);
+                          }}
+                        >
+                          ✏️
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            handleDelete(txn._id)
+                          }
+                        >
+                          🗑
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+
         </div>
       </div>
 
-      {/* TRANSACTION LIST SECTION */}
-      <div className="transaction-list-container">
-        {/* TODO: Implement your loading and error states here */}
-        {/* {isLoading && <p>Loading transactions...</p>} */}
-
-        {/* TODO: Map through your transactions. 
-            You will likely need to group them by date before mapping 
-            to achieve the "date by date" view you are looking for.
-        */}
-        
-        <div className="transaction-date-group">
-          {/* Example of how the structure should look once you map over the data */}
-          <h3 className="transaction-date-header">February 27, 2026</h3>
-          
-          <ul className="transaction-items">
-            {/* Dummy Item 1 */}
-            <li className="transaction-item">
-              <div className="transaction-info">
-                <span className="transaction-title">Groceries</span>
-                <span className="transaction-category">Food</span>
-              </div>
-              <div className="transaction-amount expense">
-                -$50.00
-              </div>
-            </li>
-
-            {/* Dummy Item 2 */}
-            <li className="transaction-item">
-              <div className="transaction-info">
-                <span className="transaction-title">Salary</span>
-                <span className="transaction-category">Income</span>
-              </div>
-              <div className="transaction-amount income">
-                +$3,000.00
-              </div>
-            </li>
-          </ul>
-        </div>
-        
-        {/* TODO: Display a "No transactions found" message if the list is empty */}
-      </div>
-
-      {/* TODO: Render your Add Transaction Modal/Form component down here conditionally based on isAddModalOpen */}
-      {isAddModalOpen && (
-        <div className="modal-placeholder">
-           {/* Add Transaction Form goes here */}
-        </div>
+      {/* MODAL */}
+      {isModalOpen && (
+        <TransactionModal
+          onClose={() => setIsModalOpen(false)}
+          mode={editData ? "edit" : "add"}
+          existingData={editData}
+          userId={userId}
+          startDate={startDate}
+          endDate={endDate}
+        />
       )}
     </div>
   );
