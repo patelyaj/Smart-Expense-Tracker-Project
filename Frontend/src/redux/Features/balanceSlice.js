@@ -10,7 +10,7 @@ export const fetchBalance = createAsyncThunk(
         } catch (error) {
             return rejectWithValue(error.response.data);
         }
-    });
+    });     
 
 const initialState = {
     balance: 0,

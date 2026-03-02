@@ -8,58 +8,70 @@ import {
   Divider,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers";
+import { useDispatch, useSelector } from "react-redux";
+import { setDateRange } from "../redux/Features/dateSlice";
 
-export default function DashboardDatePicker({
-  value,
-  setValue,
-  onClose,
-}) {
+export default function DashboardDatePicker({ onClose }) {
+  const dispatch = useDispatch();
+  const { startDate, endDate } = useSelector((state) => state.date);
+
   const handlePreset = (type) => {
+    let newStart, newEnd;
+
     switch (type) {
       case "thisWeek":
-        setValue([dayjs().startOf("week"), dayjs().endOf("week")]);
+        newStart = dayjs().startOf("week");
+        newEnd = dayjs().endOf("week");
         break;
       case "lastWeek":
-        setValue([
-          dayjs().subtract(1, "week").startOf("week"),
-          dayjs().subtract(1, "week").endOf("week"),
-        ]);
+        newStart = dayjs().subtract(1, "week").startOf("week");
+        newEnd = dayjs().subtract(1, "week").endOf("week");
         break;
       case "last7":
-        setValue([dayjs().subtract(6, "day"), dayjs()]);
+        newStart = dayjs().subtract(6, "day");
+        newEnd = dayjs();
         break;
       case "currentMonth":
-        setValue([dayjs().startOf("month"), dayjs().endOf("month")]);
+        newStart = dayjs().startOf("month");
+        newEnd = dayjs().endOf("month");
         break;
       default:
-        break;
+        return;
     }
+
+    dispatch(setDateRange({
+      startDate: newStart.toISOString(),
+      endDate: newEnd.toISOString()
+    }));
   };
 
   return (
     <Box sx={{ p: 3, width: 500 }}>
       <Stack direction="row" spacing={3}>
-        
-        {/* Left Side - Two Date Pickers */}
         <Stack spacing={2}>
           <DatePicker
             label="Start Date"
-            value={value[0]}
+            value={dayjs(startDate)}
             onChange={(newDate) =>
-              setValue([newDate, value[1]])
+              dispatch(setDateRange({
+                startDate: newDate.toISOString(),
+                endDate
+              }))
             }
           />
 
           <DatePicker
             label="End Date"
-            value={value[1]}
+            value={dayjs(endDate)}
             onChange={(newDate) =>
-              setValue([value[0], newDate])
+              dispatch(setDateRange({
+                startDate,
+                endDate: newDate.toISOString()
+              }))
             }
           />
         </Stack>
 
-        {/* Right Side - Presets */}
         <Stack spacing={1} sx={{ minWidth: 150 }}>
           <Typography fontWeight={600}>
             Quick Select
@@ -77,7 +89,7 @@ export default function DashboardDatePicker({
           <Button onClick={() => handlePreset("currentMonth")}>
             Current Month
           </Button>
-          
+
           <Divider sx={{ my: 1 }} />
 
           <Button variant="contained" onClick={onClose}>

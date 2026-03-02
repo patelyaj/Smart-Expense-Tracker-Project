@@ -1,6 +1,18 @@
 import { createAsyncThunk ,createSlice} from "@reduxjs/toolkit";
 import axios from "axios";
 
+const fetchTransactions = createAsyncThunk(
+    'transaction/fetchTransactions',
+    async ({userId,startDate,endDate}, { rejectWithValue }) => {
+        try {
+            const response = await axios.get(`http://localhost:5000/expensetracker/transactions/fetchtransactions/${userId}`,{params:{startDate,endDate}, withCredentials: true });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to fetch transactions');
+        }
+    }
+);
+
 // add transaction
 const addTransaction = createAsyncThunk(
     'transaction/addTransaction',
@@ -27,6 +39,7 @@ const editTransaction = createAsyncThunk(
     }
 );
 
+// delete transaction
 const deleteTransaction = createAsyncThunk(
     'transaction/deleteTransaction',
     async (transactionId, { rejectWithValue }) => {
@@ -39,16 +52,42 @@ const deleteTransaction = createAsyncThunk(
     }
 );
 
+const fetchIncomeExpense = createAsyncThunk(
+    'transaction/fetchIncomeExpense',
+    async ({startDate,endDate}, { rejectWithValue }) => {
+        try {
+            const response = await axios.get(`http://localhost:5000/expensetracker/transactions/fetchincomeexpense/`,{params:{startDate,endDate}, withCredentials: true });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to fetch income and expense summary');
+        }
+    });
+
 const transactionSlice = createSlice({
     name: 'transaction',
     initialState: {
         transactions: [],
         status: 'idle',
-        error: null
+        error: null,
+        income : 0,
+        expense: 0
     },
-    reducer: {  },
+    reducers: {  },
     extraReducers: (builder) => {
-        builder.addCase(addTransaction.pending, (state) => {
+        builder
+        .addCase(fetchTransactions.pending, (state) => {
+            state.status = 'loading';
+        })
+        .addCase(fetchTransactions.fulfilled, (state, action) => {
+            state.status = 'succeeded';
+            // Assuming your backend returns an array of transactions
+            state.transactions = action.payload; 
+        })
+        .addCase(fetchTransactions.rejected, (state, action) => {
+            state.status = 'failed';
+            state.error = action.payload;
+        })
+        .addCase(addTransaction.pending, (state) => {
             state.status = 'loading';
         }
         ).addCase(addTransaction.fulfilled, (state, action) => {
@@ -84,9 +123,21 @@ const transactionSlice = createSlice({
         .addCase(deleteTransaction.rejected, (state, action) => {
             state.status = 'failed';
             state.error = action.payload;
+        })
+        .addCase(fetchIncomeExpense.pending, (state) => {
+            state.status = 'loading';
+        })
+        .addCase(fetchIncomeExpense.fulfilled, (state, action) => {
+            state.status = 'succeeded';
+            state.income = action.payload.income;
+            state.expense = action.payload.expense;
+        })
+        .addCase(fetchIncomeExpense.rejected, (state, action) => {
+            state.status = 'failed';
+            state.error = action.payload;
         });
     }
 });
 
 export default transactionSlice.reducer;
-export { addTransaction, editTransaction, deleteTransaction };
+export { fetchTransactions,addTransaction, editTransaction, deleteTransaction, fetchIncomeExpense };

@@ -13,22 +13,26 @@ import {
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import DashboardDatePicker from "../DashboardDatePicker";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchIncomeExpense } from "../../redux/Features/transactionSlice";
 
 const IncomeExpenseCards = () => {
-  const income = 8500.0;
-  const expense = 3450.25;
+  const dispatch = useDispatch();
+  const userId = localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo'))._id : null;
+  const { income, expense } = useSelector((state) => state.transaction);
+  const { startDate, endDate } = useSelector((state) => state.date);
 
   const [anchorEl, setAnchorEl] = useState(null);
-  const [dateRange, setDateRange] = useState([
-    dayjs().startOf("week"),
-    dayjs().endOf("week"),
-  ]);
 
   const open = Boolean(anchorEl);
 
+  useEffect(() => {
+    dispatch(fetchIncomeExpense({ startDate, endDate }));
+  }, [startDate, endDate, dispatch]);
+
   return (
     <Grid container spacing={3} sx={{ mb: 4 }}>
-      
+
       {/* Income Card */}
       <Grid item xs={12} md={4}>
         <Card sx={{ borderRadius: 3 }}>
@@ -86,8 +90,8 @@ const IncomeExpenseCards = () => {
             variant="outlined"
             onClick={(e) => setAnchorEl(e.currentTarget)}
           >
-            {dateRange[0].format("MMM D")} -{" "}
-            {dateRange[1].format("MMM D")}
+            {dayjs(startDate).format("MMM D")} -{" "}
+            {dayjs(endDate).format("MMM D")}
           </Button>
 
           <Popover
@@ -97,8 +101,6 @@ const IncomeExpenseCards = () => {
             anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
           >
             <DashboardDatePicker
-              value={dateRange}
-              setValue={setDateRange}
               onClose={() => setAnchorEl(null)}
             />
           </Popover>

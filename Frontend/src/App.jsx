@@ -9,7 +9,7 @@ import Dashboard from './Pages/PrivatePages/Dashboard/Dashboard'
 import Transaction from './Pages/PrivatePages/Transaction/Transaction'
 import Budget from './Pages/PrivatePages/Budget/Budget'
 import Profile from './Pages/PrivatePages/Profile/Profile'
-
+import React from "react";
 
 function App() {
   return <>
@@ -22,7 +22,7 @@ function App() {
         </Route>
         <Route element={<PrivateRoute/>} >
           <Route path="/dashboard" element={<Dashboard/>} />
-          <Route path='/transaction' element={<Transaction/>} />
+          <Route path='/transactions' element={<Transaction/>} />
           <Route path='/budget' element={<Budget/>} />
           <Route path='/profile/:id' element={<Profile/>} />
           {/* <Route path='/account' element={<Account/>} /> */}

@@ -1,12 +1,13 @@
 import express from "express";
-import { addTransaction, deleteTransaction, fetchTransactions } from "../controllers/transactionController.js";
+import { addTransaction, deleteTransaction, fetchIncomeExpense, fetchTransactions } from "../controllers/transactionController.js";
+import { verifyToken } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.get('/fetchtransactions/:id',fetchTransactions);
-router.post('/addtransaction',addTransaction);
-router.patch('/edittransaction/:id',addTransaction);
-router.delete('/deletetransaction/:id',deleteTransaction);
-
+router.get('/fetchtransactions/:id',verifyToken ,fetchTransactions);
+router.post('/addtransaction',verifyToken,addTransaction);
+router.patch('/edittransaction/:id',verifyToken,addTransaction);
+router.delete('/deletetransaction/:id',verifyToken,deleteTransaction);
+router.get('/fetchincomeexpense',verifyToken,fetchIncomeExpense);
 
 export default router;
