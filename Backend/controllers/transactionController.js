@@ -1,82 +1,83 @@
 import transactionModel from "../models/transactionModel.js";
 import mongoose from "mongoose";
+import categoryModel from "../models/categoryModel.js";
+
 export const fetchTransactions = async (req, res) => {
-    try{
+    try {
         const userId = req.params.id;
-        const { startDate, endDate } = req.query; // Extract from query parameters
-        console.log("fetch transactions api called", req.params, req.query);
+        const { startDate, endDate } = req.query; 
         
-        
-        let query = {
-            userId,
-            isDeleted: false
-            };
+        let query = { userId, isDeleted: false };
+        if (startDate && endDate) {
+            query.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
+        }
 
-            if (startDate && endDate) {
-            query.date = {
-                $gte: new Date(startDate),
-                $lte: new Date(endDate)
-            };
-            }
-
-            const transactions = await transactionModel
+        const transactions = await transactionModel
             .find(query)
+            .populate('category', 'name type')
             .sort({ date: -1 })
-            .lean(); // lean() for faster read-only queries
+            .lean(); 
+
         res.status(200).json(transactions);
-    }
-    catch(err){
-        console.error("Error fetching transactions:", err);
+    } catch(err){
         res.status(500).json({message:"Internal server error"});
     }
 }
 
 export const addTransaction = async (req, res) => {
     try {
-        const {userId,amount,type,category,date,description} = req.body;
-        console.log("add transaction api called",req.body);
+        const {userId, amount, type, category, date, description} = req.body;
+        
         if(!userId || !amount || !type || !category || !date){
             return res.status(400).json({message:"Missing required fields"});
         }
+
+        let categoryDoc = await categoryModel.findOne({ name: category, userId });
+        if (!categoryDoc) {
+            categoryDoc = await categoryModel.create({ name: category, type, userId });
+        }
+        console.log("categoryDoc when adding trasnsaction . ihace to see id it returns",categoryDoc);
+
         const newTransaction = new transactionModel({
             userId,
             amount,
             type,
-            category,
+            category: categoryDoc._id,
             date,
             description
         });
         await newTransaction.save();
-        res.status(201).json({message:"Transaction added successfully",transaction:newTransaction});
-    }
-    catch(err){
-        console.error("Error adding transaction:", err);
+        
+        await newTransaction.populate('category', 'name type');
+
+        res.status(201).json({message:"Transaction added successfully", transaction: newTransaction});
+    } catch(err) {
+        console.error(err);
         res.status(500).json({message:"Internal server error"});
     }
 }
 
 export const editTransaction = async (req, res) => {
-        try {
-            const transactionId = req.params.id;
-            const {amount,type,category,date,description} = req.body;
-            const edited = await transactionModel.findByIdAndUpdate(transactionId,{
-                amount,
-                type,
-                category,
-                date,
-                description
-            },{new:true});
-            if(!edited){
-                return res.status(404).json({message:"Transaction not found"});
-            }
-            res.status(200).json({message:"Transaction updated successfully",transaction:edited});
-        }
-        catch(err){
-            console.error("Error editing transaction:", err);
-            res.status(500).json({message:"Internal server error"});
-        }
-}
+    try {
+        const transactionId = req.params.id;
+        const {amount, type, category, date, description} = req.body;
 
+        let categoryDoc = await categoryModel.findOne({ name: category, userId: req.user.userId });
+        if (!categoryDoc) {
+            categoryDoc = await categoryModel.create({ name: category, type, userId: req.user.userId });
+        }
+
+        const edited = await transactionModel.findByIdAndUpdate(transactionId, {
+            amount, type, category: categoryDoc._id, date, description
+        }, {new: true}).populate('category', 'name type');
+
+        if(!edited) return res.status(404).json({message:"Transaction not found"});
+        
+        res.status(200).json({message:"Transaction updated successfully", transaction: edited});
+    } catch(err) {
+        res.status(500).json({message:"Internal server error"});
+    }
+}
 
 // delete 
 export const deleteTransaction = async (req, res) => {

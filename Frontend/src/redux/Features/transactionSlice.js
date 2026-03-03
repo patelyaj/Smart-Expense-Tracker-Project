@@ -82,6 +82,7 @@ const transactionSlice = createSlice({
             state.status = 'succeeded';
             // Assuming your backend returns an array of transactions
             state.transactions = action.payload; 
+            console.log("Transactions fetched successfully", action.payload);
         })
         .addCase(fetchTransactions.rejected, (state, action) => {
             state.status = 'failed';

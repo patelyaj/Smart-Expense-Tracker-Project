@@ -5,7 +5,7 @@ import connectDb from './config/configDb.js';
 import authRoutes from './routes/authRoutes.js';
 import balanceRouter from './routes/balanceRoutes.js';
 import transactionRouter from './routes/transactionRoutes.js';
-
+import categoryRouter from './routes/categoryRoutes.js';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 // import 
@@ -29,6 +29,8 @@ app.use(cors({
 app.use('/expensetracker/users',authRoutes);
 app.use('/expensetracker/balance/',balanceRouter);
 app.use('/expensetracker/transactions/',transactionRouter);
+app.use('/expensetracker/categories/',categoryRouter);
+
 
 app.get('/checkbackend',(req,res)=>{
     try {

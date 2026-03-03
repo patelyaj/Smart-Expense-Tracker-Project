@@ -1,272 +1,280 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Popover } from "@mui/material";
 import dayjs from "dayjs";
+import { 
+  Container, Box, Typography, Button, IconButton, Paper, 
+  Avatar, Stack, Chip, Divider, MenuItem, TextField, Popover, InputAdornment
+} from "@mui/material";
+import { alpha } from "@mui/material/styles";
+import { DatePicker } from "@mui/x-date-pickers";
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import TrendingDownIcon from "@mui/icons-material/TrendingDown";
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import SearchIcon from '@mui/icons-material/Search';
+
 import Navbar from "../../../Component/DashboardComponents/Navbar";
-import DashboardDatePicker from "../../../Component/DashboardDatePicker";
 import TransactionModal from "./TransactionModal";
-import {
-  fetchTransactions,
-  deleteTransaction,
-  fetchIncomeExpense
-} from "../../../redux/Features/transactionSlice";
-import "./Transaction.css";
+import { fetchTransactions, deleteTransaction, fetchIncomeExpense } from "../../../redux/Features/transactionSlice";
+import { fetchCategories } from "../../../redux/Features/categorySlice";
+
+import DashboardDatePicker from "../../../Component/DashboardDatePicker";
 
 const Transaction = () => {
   const dispatch = useDispatch();
+  const userId = JSON.parse(localStorage.getItem("userInfo"))?._id;
+  
+  const { transactions, status } = useSelector((state) => state.transaction);
+  const { categories } = useSelector((state) => state.category); 
 
-  const { transactions, status } = useSelector(
-    (state) => state.transaction
-  );
+  // Main date state that actually triggers API calls
+  const [startDate, setStartDate] = useState(dayjs().startOf("month").toISOString());
+  const [endDate, setEndDate] = useState(dayjs().endOf("month").toISOString());
 
-  const { startDate, endDate } = useSelector(
-    (state) => state.date
-  );
-
-  const userId = JSON.parse(
-    localStorage.getItem("userInfo")
-  )?._id;
-
-  // Modal states
+  // Modal state for Add / Edit
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editData, setEditData] = useState(null);
 
-  // Filter states
+  // Filters applied only on frontend (no API call needed)
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [amountRange, setAmountRange] = useState([0, 10000]);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Date popover
+  // Temporary date values used inside the popover before clicking "Apply"
   const [anchorEl, setAnchorEl] = useState(null);
-  const open = Boolean(anchorEl);
 
-  const handleOpenDate = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
 
-  const handleCloseDate = () => {
-    setAnchorEl(null);
-  };
+  const openDatePopover = Boolean(anchorEl);
 
-  // 🔥 Fetch transactions when date changes
+  // Whenever final date changes → refetch transactions + categories
   useEffect(() => {
     if (userId && startDate && endDate) {
-      dispatch(
-        fetchTransactions({
-          userId,
-          startDate,
-          endDate
-        })
-      );
+      dispatch(fetchTransactions({ userId, startDate, endDate }));
+      dispatch(fetchCategories()); 
     }
   }, [startDate, endDate, dispatch, userId]);
 
-  // 🔹 Local filtering
+  // Apply frontend filters (category + search)
   const filteredTransactions = useMemo(() => {
     return transactions.filter((txn) => {
+      const catName = txn.category?.name || "Uncategorized";
+      const description = txn.description || "";
+
       const matchesCategory =
-        selectedCategory === "all" ||
-        txn.category === selectedCategory;
+        selectedCategory === "all" || catName === selectedCategory;
 
-      const matchesAmount =
-        txn.amount >= amountRange[0] &&
-        txn.amount <= amountRange[1];
+      const matchesSearch =
+        description.toLowerCase().includes(searchQuery.toLowerCase());
 
-      return matchesCategory && matchesAmount;
+      return matchesCategory && matchesSearch;
     });
-  }, [transactions, selectedCategory, amountRange]);
+  }, [transactions, selectedCategory, searchQuery]);
 
-  // 🔹 Group by date
+  // Group transactions by date for display
   const groupedTransactions = useMemo(() => {
     const groups = {};
-
     filteredTransactions.forEach((txn) => {
       const dateKey = dayjs(txn.date).format("MMMM D, YYYY");
-
-      if (!groups[dateKey]) {
-        groups[dateKey] = [];
-      }
-
+      if (!groups[dateKey]) groups[dateKey] = [];
       groups[dateKey].push(txn);
     });
-
     return groups;
   }, [filteredTransactions]);
 
-  // 🔥 Delete Handler
+  // Delete transaction and refresh related data
   const handleDelete = async (txnId) => {
-    await dispatch(deleteTransaction(txnId));
-
-    // Refresh everything
-    dispatch(fetchTransactions({ userId, startDate, endDate }));
-    dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
+    if (window.confirm("Are you sure you want to delete this transaction?")) {
+      await dispatch(deleteTransaction(txnId)).unwrap();
+      dispatch(fetchTransactions({ userId, startDate, endDate }));
+      dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
+    }
   };
 
+
   return (
-    <div className="transaction-page">
+    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', pb: 10 }}>
       <Navbar />
 
-      <div className="transaction-container">
+      <Container maxWidth="md" sx={{ mt: 5 }}>
+        
+        {/* Page header */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4" fontWeight={800} color="text.primary">
+            Transactions
+          </Typography>
+          <Button 
+            variant="contained" 
+            startIcon={<AddIcon />} 
+            onClick={() => { setEditData(null); setIsModalOpen(true); }}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, px: 3, boxShadow: 2 }}
+            disableElevation
+          >
+            Add Transaction
+          </Button>
+        </Box>
 
-        {/* HEADER */}
-        <div className="transaction-header">
-          <h2>Transactions</h2>
-        </div>
+        {/* Filters */}
+        <Paper 
+          elevation={0}
+          sx={{ 
+            p: 2.5, mb: 4, borderRadius: 3, 
+            display: 'flex', gap: 3, alignItems: 'center', flexWrap: 'wrap',
+            border: (theme) => `1px solid ${theme.palette.divider}`,
+            bgcolor: 'background.paper'
+          }} 
+        >
+          {/* Search input */}
+          <TextField
+            placeholder="Search By Description..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            size="small"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ flex: 1, minWidth: 200 }}
+          />
 
-        {/* FILTER SECTION */}
-        <div className="filter-box">
-          <div className="filter-row">
+          {/* Category filter */}
+          <TextField
+            select
+            label="Category"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            size="small"
+            sx={{ minWidth: 180 }}
+          >
+            <MenuItem value="all">All Categories</MenuItem>
+            {categories.map((cat, idx) => (
+              <MenuItem key={idx} value={cat.name}>{cat.name}</MenuItem>
+            ))}
+          </TextField>
 
-            <div className="filter-item">
-              <label>By category</label>
-              <select
-                value={selectedCategory}
-                onChange={(e) =>
-                  setSelectedCategory(e.target.value)
-                }
-              >
-                <option value="all">All categories</option>
-                <option value="food">Food</option>
-                <option value="rent">Rent</option>
-                <option value="transport">Transport</option>
-                <option value="salary">Salary</option>
-              </select>
-            </div>
-
-            <div className="filter-item">
-              <label>By amount</label>
-              <input
-                type="range"
-                min="0"
-                max="10000"
-                value={amountRange[1]}
-                onChange={(e) =>
-                  setAmountRange([0, Number(e.target.value)])
-                }
-              />
-              <span>0 - ${amountRange[1]}</span>
-            </div>
-
-            <div className="filter-item date-filter">
-              <label>Date</label>
-              <button
-                className="date-btn"
-                onClick={handleOpenDate}
-              >
-                {dayjs(startDate).format("MMM D, YYYY")} –{" "}
-                {dayjs(endDate).format("MMM D, YYYY")} 📅
-              </button>
-            </div>
-
-            <button
-              className="reset-btn"
-              onClick={() => {
-                setSelectedCategory("all");
-                setAmountRange([0, 10000]);
-              }}
-            >
-              Reset Filters
-            </button>
-
-          </div>
-
-          <Popover
-            open={open}
-            anchorEl={anchorEl}
-            onClose={handleCloseDate}
-            anchorOrigin={{
-              vertical: "bottom",
-              horizontal: "right",
+          {/* Date range selector */}
+          <Button
+            variant="outlined"
+            endIcon={<CalendarMonthIcon />}
+            onClick={(e) => {
+              
+              setAnchorEl(e.currentTarget);
+            }}
+            sx={{ 
+              borderRadius: 2, textTransform: 'none', fontWeight: 600, 
+              color: 'text.primary', borderColor: 'divider', px: 3, py: 1, gap : 4
             }}
           >
-            <DashboardDatePicker onClose={handleCloseDate} />
+            {dayjs(startDate).format("MMM D, YYYY")} — {dayjs(endDate).format("MMM D, YYYY")}
+          </Button>
+
+          {/* Date popover */}
+          {/* Floating Calendar Interface */}
+          <Popover 
+            open={openDatePopover} 
+            anchorEl={anchorEl} 
+            onClose={() => setAnchorEl(null)} 
+            anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+            PaperProps={{ sx: { mt: 1, borderRadius: 3, boxShadow: 4 } }}
+          >
+             <DashboardDatePicker 
+              initialStartDate={startDate}
+              initialEndDate={endDate}
+              onApply={(newStart, newEnd) => {
+                // Update Local state ONLY when Apply is clicked!
+                setStartDate(newStart);
+                setEndDate(newEnd);
+              }}
+              onClose={() => setAnchorEl(null)} 
+            />
           </Popover>
-        </div>
+        </Paper>
 
-        {/* ADD BUTTON */}
-        <button
-          className="add-btn"
-          onClick={() => {
-            setEditData(null);
-            setIsModalOpen(true);
-          }}
-        >
-          + Add Transaction
-        </button>
+        {/* Loading / Empty state */}
+        {status === "loading" && (
+          <Typography color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>
+            Loading records...
+          </Typography>
+        )}
 
-        {/* TRANSACTION LIST */}
-        <div className="transaction-list">
+        {Object.keys(groupedTransactions).length === 0 && status !== "loading" && (
+          <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 3, border: (theme) => `1px dashed ${theme.palette.divider}` }} elevation={0}>
+            <Typography variant="h6" color="text.secondary">
+              No transactions found for these filters.
+            </Typography>
+          </Paper>
+        )}
 
-          {status === "loading" && <p>Loading...</p>}
+        {/* Transactions list */}
+        <Stack spacing={4}>
+          {Object.entries(groupedTransactions).map(([date, txns]) => (
+            <Box key={date}>
+              <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ mb: 1.5, ml: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {date} ---------------------------------------------------------------------------------------------------------------------------------------
+              </Typography>
+              
+              <Paper sx={{ borderRadius: 3, overflow: 'hidden', border: (theme) => `1px solid ${theme.palette.divider}` }} elevation={0}>
+                {txns.map((txn, index) => {
+                  const isIncome = txn.type === "income";
+                  const catName = txn.category?.name || "Uncategorized";
+                  const description = txn.description || "No description";
 
-          {Object.keys(groupedTransactions).length === 0 && (
-            <p>No transactions found</p>
-          )}
+                  return (
+                    <React.Fragment key={txn._id}>
+                      <Box sx={{ 
+                        p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                        transition: 'background-color 0.2s',
+                        '&:hover': { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03) } 
+                      }}>
+                        
+                        {/* Left side info */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                          <Avatar sx={{ 
+                            width: 48, height: 48,
+                            bgcolor: (theme) => alpha(theme.palette[isIncome ? 'success' : 'error'].main, 0.1), 
+                            color: isIncome ? 'success.main' : 'error.main' 
+                          }}>
+                            {isIncome ? <TrendingUpIcon /> : <TrendingDownIcon />}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body1" fontWeight={700} color="text.primary" sx={{ mb: 0.25 }}>
+                              {catName}
+                            </Typography>
+                            <Chip label={description} size="small" sx={{ height: 20, fontSize: '0.7rem', fontWeight: 600 }} />
+                          </Box>
+                        </Box>
 
-          {Object.entries(groupedTransactions).map(
-            ([date, txns]) => (
-              <div key={date} className="transaction-date-group">
+                        {/* Right side actions */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                          <Typography variant="h6" fontWeight={800} color={isIncome ? 'success.main' : 'error.main'}>
+                            {isIncome ? "+" : "-"}${txn.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </Typography>
+                          
+                          <Box sx={{ display: 'flex', gap: 0.5 }}>
+                            <IconButton size="small" onClick={() => { setEditData(txn); setIsModalOpen(true); }}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton size="small" onClick={() => handleDelete(txn._id)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        </Box>
+                      </Box>
+                      {index !== txns.length - 1 && <Divider />}
+                    </React.Fragment>
+                  )
+                })}
+              </Paper>
+            </Box>
+          ))}
+        </Stack>
 
-                <h4 className="date-header">{date}</h4>
+      </Container>
 
-                {txns.map((txn) => (
-                  <div
-                    key={txn._id}
-                    className="transaction-item"
-                  >
-                    <div className="left">
-                      <div className="circle-icon" />
-                      <div>
-                        <p className="title">
-                          {txn.description || "Transaction"}
-                        </p>
-                        <span className="category">
-                          {txn.type}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="right">
-                      <div
-                        className={`amount ${
-                          txn.type === "income"
-                            ? "income"
-                            : "expense"
-                        }`}
-                      >
-                        {txn.type === "income" ? "+" : "-"}$
-                        {txn.amount}
-                      </div>
-
-                      <div className="actions">
-                        <button
-                          onClick={() => {
-                            setEditData(txn);
-                            setIsModalOpen(true);
-                          }}
-                        >
-                          ✏️
-                        </button>
-
-                        <button
-                          onClick={() =>
-                            handleDelete(txn._id)
-                          }
-                        >
-                          🗑
-                        </button>
-                      </div>
-                    </div>
-
-                  </div>
-                ))}
-              </div>
-            )
-          )}
-
-        </div>
-      </div>
-
-      {/* MODAL */}
+      {/* Modal */}
       {isModalOpen && (
         <TransactionModal
           onClose={() => setIsModalOpen(false)}
@@ -277,7 +285,7 @@ const Transaction = () => {
           endDate={endDate}
         />
       )}
-    </div>
+    </Box>
   );
 };
 

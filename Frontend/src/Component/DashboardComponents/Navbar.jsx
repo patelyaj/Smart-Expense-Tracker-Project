@@ -14,20 +14,21 @@ import MenuItem from '@mui/material/MenuItem';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import { useDispatch, useSelector } from 'react-redux';
-import { logoutUser, toggleTheme } from '../../redux/Features/authSlice'; // Import toggleTheme
-import { useNavigate } from 'react-router-dom';
+import { logoutUser, toggleTheme } from '../../redux/Features/authSlice';
+import { useNavigate, useLocation } from 'react-router-dom'; 
+import { alpha } from '@mui/material/styles';
 
 function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation(); 
   const dispatch = useDispatch();
   
-  // Grab the current theme mode from Redux
   const themeMode = useSelector((state) => state.auth.themeMode);
 
   const pages = [
     {label: "Overview", path: "/dashboard"},
     {label: "Transactions", path: "/transactions"}, 
-    {label: "Budgets", path: "/budget"}, // Note: I changed this to /budget based on your App.jsx routes
+    {label: "Budgets", path: "/budget"},
   ];
 
   const userInfo = JSON.parse(localStorage.getItem("userInfo"));
@@ -55,17 +56,19 @@ function Navbar() {
       position="sticky" 
       elevation={0}
       sx={{ 
-        bgcolor: 'background.paper', // FIXED: Adapts to light/dark automatically
-        borderBottom: (theme) => `1px solid ${theme.palette.divider}`, // FIXED: Dynamic border color
+        bgcolor: 'background.paper', 
+        borderBottom: (theme) => `1px solid ${theme.palette.divider}`, 
         color: 'text.primary',
-        backgroundImage: 'none', // Prevents MUI's default dark mode elevation overlay
+        backgroundImage: 'none', 
+        backdropFilter: 'blur(10px)',
+        backgroundColor: (theme) => alpha(theme.palette.background.paper, 0.9),
       }}
     >
       <Container maxWidth="xl">
-        <Toolbar disableGutters>
+        <Toolbar disableGutters sx={{ minHeight: '70px' }}>
           {/* Desktop Logo */}
           <Typography
-            variant="h6"
+            variant="h5"
             noWrap
             component="a"
             href="/dashboard"  
@@ -73,7 +76,9 @@ function Navbar() {
               display: { xs: 'none', md: 'flex' },
               fontWeight: 800,
               letterSpacing: '.1rem',
-              color: 'inherit',
+              background: (theme) => `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
               textDecoration: 'none',
               width: '200px',
             }}
@@ -100,22 +105,36 @@ function Navbar() {
               onClose={handleCloseNavMenu}
               sx={{ display: { xs: 'block', md: 'none' } }}
             >
-              {pages.map((page) => (
-                <MenuItem key={page.label} onClick={()=>{
-                  handleCloseNavMenu();
-                  navigate(page.path);
-                }}>
-                  <Typography sx={{ textAlign: 'center', fontWeight: 500 }}>
-                    {page.label}
-                  </Typography>
-                </MenuItem>
-              ))}
+              {pages.map((page) => {
+                const isActive = location.pathname === page.path;
+                return (
+                  <MenuItem 
+                    key={page.label} 
+                    selected={isActive}
+                    onClick={()=>{
+                      handleCloseNavMenu();
+                      navigate(page.path);
+                    }}
+                    sx={{
+                      '&.Mui-selected': {
+                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                        color: 'primary.main',
+                        fontWeight: 'bold'
+                      }
+                    }}
+                  >
+                    <Typography sx={{ textAlign: 'center', fontWeight: isActive ? 700 : 500 }}>
+                      {page.label}
+                    </Typography>
+                  </MenuItem>
+                );
+              })}
             </Menu>
           </Box>
 
           {/* Mobile Logo */}
           <Typography
-            variant="h5"
+            variant="h6"
             noWrap
             component="a"
             href="/dashboard"
@@ -125,55 +144,90 @@ function Navbar() {
               flexGrow: 1,
               fontWeight: 800,
               letterSpacing: '.1rem',
-              color: 'inherit',
+              color: 'primary.main',
               textDecoration: 'none',
             }}
           >
             Xpense
           </Typography>
 
-          {/* Desktop Links - Centered */}
+          {/* Desktop Links - Bottom Border Style */}
           <Box sx={{ 
             flexGrow: 1, 
             display: { xs: 'none', md: 'flex' }, 
             justifyContent: 'center', 
             gap: 3 
           }}>
-            {pages.map((page) => (
-              <Button
-                key={page.label}
-                onClick={() => {
-                  navigate(page.path);
-                }}
-                sx={{
-                  my: 2,
-                  color: 'text.secondary',
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: '1rem',
-                  '&:hover': {
-                    color: 'primary.main',
+            {pages.map((page) => {
+              const isActive = location.pathname === page.path; 
+              
+              return (
+                <Button
+                  key={page.label}
+                  disableRipple // Removes the default material ripple circle for a cleaner look
+                  onClick={() => navigate(page.path)}
+                  sx={{
+                    my: 2,
+                    px: 1, // Reduced horizontal padding since we rely on the line now
+                    py: 1,
+                    color: isActive ? 'primary.main' : 'text.primary',
                     bgcolor: 'transparent',
-                  }
-                }}
-              >
-                {page.label}
-              </Button>
-            ))}
+                    textTransform: 'none',
+                    fontWeight: isActive ? 700 : 600,
+                    fontSize: '1rem',
+                    position: 'relative', // CRITICAL: Required for the absolute positioning of the bottom line
+                    transition: 'color 0.2s ease-in-out',
+                    
+                    '&:hover': {
+                      color: 'primary.main',
+                      bgcolor: 'transparent', // Keep background transparent on hover
+                    },
+                    
+                    /* The Animated Bottom Line */
+                    '&::after': {
+                      content: '""',
+                      position: 'absolute',
+                      bottom: '0px', // Places the line at the very bottom of the button
+                      left: '50%',
+                      transform: isActive ? 'translateX(-50%) scaleX(1)' : 'translateX(-50%) scaleX(0)',
+                      width: '80%', // Line takes up 80% of the button width
+                      height: '3px', // Thickness of the line
+                      borderRadius: '4px 4px 0 0', // Rounds the top corners of the line slightly
+                      backgroundColor: 'primary.main',
+                      transition: 'transform 0.3s ease-in-out, opacity 0.3s ease-in-out',
+                      opacity: isActive ? 1 : 0,
+                      transformOrigin: 'center',
+                    },
+
+                    /* Hover state for the bottom line */
+                    '&:hover::after': {
+                      transform: 'translateX(-50%) scaleX(1)',
+                      opacity: isActive ? 1 : 0.5, // Line shows up at 50% opacity when hovering on inactive pages
+                    }
+                  }}
+                >
+                  {page.label}
+                </Button>
+              )
+            })}
           </Box>
 
-          {/* Right Side Icons (Theme Toggle + Avatar) */}
+          {/* Right Side Icons */}
           <Box sx={{ flexGrow: 0, width: { md: '200px' }, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1 }}>
             
-            {/* THEME TOGGLE BUTTON */}
-            <IconButton onClick={() => dispatch(toggleTheme())} color="inherit">
+            <IconButton 
+              onClick={() => dispatch(toggleTheme())} 
+              sx={{ 
+                color: 'text.secondary',
+                '&:hover': { bgcolor: (theme) => alpha(theme.palette.text.primary, 0.05) }
+              }}
+            >
               {themeMode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
             </IconButton>
 
-            {/* User Profile / Avatar */}
             <Tooltip title="Open settings">
-              <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Avatar alt="User Avatar" src="/static/images/avatar/2.jpg" />
+              <IconButton onClick={handleOpenUserMenu} sx={{ p: 0.5, border: '2px solid transparent', transition: 'border 0.2s', '&:hover': { borderColor: 'primary.main' } }}>
+                <Avatar alt="User Avatar" src="/static/images/avatar/2.jpg" sx={{ width: 36, height: 36 }} />
               </IconButton>
             </Tooltip>
             <Menu
@@ -186,23 +240,19 @@ function Navbar() {
               open={Boolean(anchorElUser)}
               onClose={handleCloseUserMenu}
               PaperProps={{
-                elevation: 3,
-                sx: { borderRadius: 2, minWidth: 150 }
+                elevation: 4,
+                sx: { borderRadius: 3, minWidth: 160, overflow: 'visible', mt: 1.5, '&:before': { content: '""', display: 'block', position: 'absolute', top: 0, right: 14, width: 10, height: 10, bgcolor: 'background.paper', transform: 'translateY(-50%) rotate(45deg)', zIndex: 0, } }
               }}
             >
               {settings.map((item) => (
-                <MenuItem key={item.label} onClick={
-                  ()=>{
-                    handleCloseUserMenu();
-                    navigate(item.path);
-                }
-                }>
+                <MenuItem key={item.label} onClick={()=>{ handleCloseUserMenu(); navigate(item.path); }} sx={{ borderRadius: 1, mx: 1 }}>
                   <Typography sx={{ textAlign: 'center', fontWeight: 500 }} >{item.label}</Typography>
                 </MenuItem>
               ))}
-                  <MenuItem onClick={handleLogout}>
-                    <Typography sx={{ textAlign: 'center', fontWeight: 500 }} >Logout</Typography>
-                  </MenuItem>
+              <Box sx={{ my: 1, borderBottom: '1px solid', borderColor: 'divider' }} />
+              <MenuItem onClick={handleLogout} sx={{ borderRadius: 1, mx: 1, color: 'error.main' }}>
+                <Typography sx={{ textAlign: 'center', fontWeight: 600, width: '100%' }} >Logout</Typography>
+              </MenuItem>
             </Menu>
           </Box>
         </Toolbar>

@@ -1,34 +1,39 @@
-import React, { useState } from "react";
-import { useDispatch } from "react-redux";
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import dayjs from "dayjs";
 import {
-  addTransaction,
-  editTransaction,
-  fetchTransactions,
-  fetchIncomeExpense
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  Button, TextField, MenuItem, Autocomplete, Stack
+} from "@mui/material";
+import {
+  addTransaction, editTransaction, fetchTransactions, fetchIncomeExpense
 } from "../../../redux/Features/transactionSlice";
-import "./TransactionModal.css";
+import { fetchCategories } from "../../../redux/Features/categorySlice"; // 🔥 IMPORT THIS
 
-const TransactionModal = ({
-  onClose,
-  mode = "add", // add | edit
-  existingData = null,
-  userId,
-  startDate,
-  endDate
-}) => {
-
+const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, startDate, endDate }) => {
   const dispatch = useDispatch();
+
+  const { categories } = useSelector((state) => state.category);
+
+  useEffect(() => {
+    // Fetch categories when the modal opens
+    dispatch(fetchCategories());
+  }, [dispatch]);
+
+  const existingCategoryName = existingData?.category?.name || existingData?.category || "";
 
   const [formData, setFormData] = useState({
     amount: existingData?.amount || "",
     type: existingData?.type || "expense",
-    category: existingData?.category || "",
-    date: existingData?.date
-      ? dayjs(existingData.date).format("YYYY-MM-DD")
-      : dayjs().format("YYYY-MM-DD"),
+    category: existingCategoryName,
+    date: existingData?.date ? dayjs(existingData.date).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"),
     description: existingData?.description || ""
   });
+
+  // if user switches type refetch category suggestions to match the type
+  const categorySuggestions = categories
+    .filter(cat => cat.type === formData.type)
+    .map(cat => cat.name);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,94 +44,96 @@ const TransactionModal = ({
       amount: Number(formData.amount)
     };
 
-    if (mode === "add") {
-      await dispatch(addTransaction(payload));
-    } else {
-      await dispatch(
-        editTransaction({
-          transactionId: existingData._id,
-          updatedData: payload
-        })
-      );
+    try {
+      if (mode === "add") {
+        await dispatch(addTransaction(payload)).unwrap();
+      } else {
+        await dispatch(editTransaction({ transactionId: existingData._id, updatedData: payload })).unwrap();
+      }
+
+      // Refresh Data
+      dispatch(fetchTransactions({ userId, startDate, endDate }));
+      dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
+      
+      // 🔥 3. Refetch categories just in case they added a brand new one in the FreeSolo input!
+      dispatch(fetchCategories());
+      
+      onClose();
+    } catch (error) {
+      console.error("Failed to save transaction", error);
     }
-
-    // 🔥 Refresh everything
-    dispatch(fetchTransactions({ userId, startDate, endDate }));
-    dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
-
-    onClose();
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-box">
+    <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
+      <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
+        {mode === "add" ? "Add Transaction" : "Edit Transaction"}
+      </DialogTitle>
+      
+      <form onSubmit={handleSubmit}>
+        <DialogContent>
+          <Stack spacing={3} sx={{ mt: 1 }}>
+            
+            <TextField
+              select
+              label="Type"
+              value={formData.type}
+              onChange={(e) => setFormData({ ...formData, type: e.target.value, category: "" })} 
+              fullWidth
+            >
+              <MenuItem value="expense">Expense</MenuItem>
+              <MenuItem value="income">Income</MenuItem>
+            </TextField>
 
-        <h3>{mode === "add" ? "Add Transaction" : "Edit Transaction"}</h3>
+            <TextField
+              type="number"
+              label="Amount"
+              value={formData.amount}
+              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              fullWidth required
+              InputProps={{ startAdornment: <span style={{ marginRight: 8 }}>$</span> }}
+            />
 
-        <form onSubmit={handleSubmit}>
+            {/* 🔥 The dropdown now feeds off the database! */}
+            <Autocomplete
+              freeSolo
+              options={categorySuggestions}
+              value={formData.category}
+              onInputChange={(event, newInputValue) => {
+                setFormData({ ...formData, category: newInputValue });
+              }}
+              renderInput={(params) => (
+                <TextField {...params} label="Category" placeholder="Select or type new..." required />
+              )}
+            />
 
-          <select
-            value={formData.type}
-            onChange={(e) =>
-              setFormData({ ...formData, type: e.target.value })
-            }
-          >
-            <option value="expense">Expense</option>
-            <option value="income">Income</option>
-          </select>
+            <TextField
+              type="date"
+              label="Date"
+              InputLabelProps={{ shrink: true }}
+              value={formData.date}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              fullWidth required
+            />
 
-          <input
-            type="number"
-            placeholder="Amount"
-            value={formData.amount}
-            onChange={(e) =>
-              setFormData({ ...formData, amount: e.target.value })
-            }
-            required
-          />
+            <TextField
+              label="Description (Optional)"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              fullWidth multiline rows={2}
+            />
 
-          <input
-            type="text"
-            placeholder="Category ID"
-            value={formData.category}
-            onChange={(e) =>
-              setFormData({ ...formData, category: e.target.value })
-            }
-            required
-          />
+          </Stack>
+        </DialogContent>
 
-          <input
-            type="date"
-            value={formData.date}
-            onChange={(e) =>
-              setFormData({ ...formData, date: e.target.value })
-            }
-          />
-
-          <input
-            type="text"
-            placeholder="Description"
-            value={formData.description}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                description: e.target.value
-              })
-            }
-          />
-
-          <div className="modal-actions">
-            <button type="submit">
-              {mode === "add" ? "Add" : "Update"}
-            </button>
-            <button type="button" onClick={onClose}>
-              Cancel
-            </button>
-          </div>
-
-        </form>
-      </div>
-    </div>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={onClose} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
+          <Button type="submit" variant="contained" disableElevation sx={{ fontWeight: 600, borderRadius: 2 }}>
+            {mode === "add" ? "Save" : "Update"}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
 };
 

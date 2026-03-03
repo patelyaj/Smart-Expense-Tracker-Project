@@ -23,12 +23,12 @@ function Profile() {
             Account
           </div>
 
-          <div
+          {/* <div
             className={activeTab === "categories" ? "active" : ""}
             onClick={() => setActiveTab("categories")}
           >
             All Categories
-          </div>
+          </div> */}
 
           <div
             className={activeTab === "profile" ? "active" : ""}
@@ -41,7 +41,7 @@ function Profile() {
         {/* Right Content */}
         <div className="profile-content">
           {activeTab === "account" && <Account />}
-          {activeTab === "categories" && <Categories />}
+          {/* {activeTab === "categories" && <Categories />} */}
           {activeTab === "profile" && <ProfileSetting />}
         </div>
 

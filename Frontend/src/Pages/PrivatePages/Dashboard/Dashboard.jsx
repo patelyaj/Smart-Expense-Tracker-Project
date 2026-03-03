@@ -1,41 +1,92 @@
-import { Container, Box } from '@mui/material';
-import Navbar from '../../../Component/DashboardComponents/Navbar';
-import BalanceCard from '../../../Component/DashboardComponents/BalanceCard';
-import IncomeExpenseCards from '../../../Component/DashboardComponents/IncomeExpenseCards';
-import AnalyticsSection from '../../../Component/DashboardComponents/AnalyticsSection';
+import React, { useState } from 'react';
+import { Box, Container, Typography, Button, Popover } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+// import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'; // <-- Added Down Arrow
+import dayjs from 'dayjs';
+import { useDispatch, useSelector } from 'react-redux';
 
-function Dashboard() {
-  // Mock Data - Replace these with real Redux state selectors later
-  // e.g. const transactions = useSelector(state => state.transactions.list);
-  // const [dashboardData, setDashboardData] = useState({
-  //   balance: 12450.50,
-  //   income: 8500.00,
-  //   expense: 3450.25,
-  //   categoryData: [
-  //     { name: 'Food', value: 800 },
-  //     { name: 'Housing', value: 1500 },
-  //     { name: 'Transport', value: 400 },
-  //     { name: 'Utilities', value: 300 },
-  //     { name: 'Entertainment', value: 450.25 },
-  //   ],
-  //   trendData: [
-  //     { name: 'Week 1', income: 4000, expense: 1200 },
-  //     { name: 'Week 2', income: 1000, expense: 800 },
-  //     { name: 'Week 3', income: 500, expense: 950 },
-  //     { name: 'Week 4', income: 3000, expense: 500.25 },
-  //   ]
-  // });
+// Import your components
+import Navbar from '../../../Component/DashboardComponents/Navbar';
+import FinancialSummary from '../../../Component/DashboardComponents/FinancialSummary';
+import AnalyticsSection from '../../../Component/DashboardComponents/AnalyticsSection';
+import DashboardDatePicker from '../../../Component/DashboardDatePicker';
+import { setDateRange } from '../../../redux/Features/dateSlice';
+
+const Dashboard = () => {
+  const dispatch = useDispatch();
+  const { startDate, endDate } = useSelector((state) => state.date);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const openDatePopover = Boolean(anchorEl);
 
   return (
-   <>
+    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', pb: 10 }}>
       <Navbar />
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <BalanceCard />
-        <IncomeExpenseCards />
+
+      <Container maxWidth="xl" sx={{ mt: 4 }}>
+        
+        {/* 🎛️ TOP HEADER: Title Left, Date Dropdown Right */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+          
+          <Typography variant="h5" fontWeight={800} color="text.primary">
+            Dashboard
+          </Typography>
+
+          {/* Clean, Professional SaaS-style Date Button */}
+          <Button
+            variant="outlined"
+            onClick={(e) => setAnchorEl(e.currentTarget)}
+            endIcon={<CalendarMonthIcon fontSize="small" />}
+            // endIcon={<KeyboardArrowDownIcon />}
+            sx={{
+              borderColor: 'divider',
+              color: 'text.primary',
+              bgcolor: 'background.paper',
+              textTransform: 'none',
+              fontWeight: 600,
+              px: 2,
+              py: 0.8,
+              mr : 6,
+              gap: 8,
+              borderRadius: 2,
+              '&:hover': {
+                bgcolor: (theme) => alpha(theme.palette.text.primary, 0.04),
+                borderColor: 'text.secondary',
+              }
+            }}
+          >
+            {dayjs(startDate).format("MMM D, YYYY")} - {dayjs(endDate).format("MMM D, YYYY")}
+          </Button>
+
+          <Popover
+            open={openDatePopover}
+            anchorEl={anchorEl}
+            onClose={() => setAnchorEl(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
+            slotProps={{ paper: { sx: { mt: 1, borderRadius: 2, boxShadow: 4 } } }}
+          >
+            <DashboardDatePicker 
+              initialStartDate={startDate}
+              initialEndDate={endDate}
+              onApply={(newStart, newEnd) => {
+                dispatch(setDateRange({ startDate: newStart, endDate: newEnd }));
+              }}
+              onClose={() => setAnchorEl(null)} 
+            />
+          </Popover>
+
+        </Box>
+
+        {/* 📊 EXACT POSITIONING: Income -> Balance -> Expense */}
+        <FinancialSummary />
+
+        {/* 📈 Analytics Section */}
         <AnalyticsSection />
+
       </Container>
-   </>
+    </Box>
   );
-}
+};
 
 export default Dashboard;
