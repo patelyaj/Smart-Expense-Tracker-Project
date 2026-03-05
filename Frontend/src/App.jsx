@@ -16,7 +16,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { useSelector } from 'react-redux';
 import { lightTheme, darkTheme } from './theme'; // Import your newly created themes
-import Account from "./Pages/PrivatePages/Account/Account";
+
 import Categories from "./Component/Categories";
 import BudgetDetails from "./Pages/PrivatePages/Budget/BudgetDetails";
 
@@ -45,7 +45,6 @@ function App() {
             <Route path="/dashboard" element={<Dashboard/>} />
             <Route path='/transactions' element={<Transaction/>} />
             <Route path='/profile/:id' element={<Profile/>} />
-            <Route path='/account' element={<Account/>} />
             <Route path='/categories' element={<Categories/>}/>
             
             <Route path='/budget' element={<Budget/>} />

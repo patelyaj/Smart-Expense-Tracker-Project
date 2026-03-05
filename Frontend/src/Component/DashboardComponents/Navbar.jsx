@@ -33,6 +33,10 @@ function Navbar() {
 
   const userInfo = JSON.parse(localStorage.getItem("userInfo"));
   const userId = userInfo ? userInfo._id : null;
+
+  // Extract the first letter of the username (default to "U" if not found)
+  const userFirstLetter = userInfo && userInfo.username ? userInfo.username.charAt(0).toUpperCase() : "U";
+
   const settings = [
     { label: "Profile", path: `/profile/${userId}` },
   ];
@@ -226,7 +230,18 @@ function Navbar() {
 
             <Tooltip title="Open settings">
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0.5, border: '2px solid transparent', transition: 'border 0.2s', '&:hover': { borderColor: 'primary.main' } }}>
-                <Avatar alt="User Avatar" src="/static/images/avatar/2.jpg" sx={{ width: 36, height: 36 }} />
+                {/* DYNAMIC AVATAR ADDED HERE */}
+                <Avatar 
+                  sx={{ 
+                    width: 36, 
+                    height: 36, 
+                    bgcolor: 'primary.main', 
+                    color: 'primary.contrastText', // Ensures the letter is readable
+                    fontWeight: 700 
+                  }}
+                >
+                  {userFirstLetter}
+                </Avatar>
               </IconButton>
             </Tooltip>
             <Menu

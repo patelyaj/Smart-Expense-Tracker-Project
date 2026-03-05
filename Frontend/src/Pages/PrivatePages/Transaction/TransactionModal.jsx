@@ -5,15 +5,26 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, MenuItem, Autocomplete, Stack
 } from "@mui/material";
+
+// Import toast for notifications
+import { toast } from "react-toastify";
+
 import {
   addTransaction, editTransaction, fetchTransactions, fetchIncomeExpense
 } from "../../../redux/Features/transactionSlice";
-import { fetchCategories } from "../../../redux/Features/categorySlice"; // 🔥 IMPORT THIS
+import { fetchCategories } from "../../../redux/Features/categorySlice"; // IMPORT THIS
+
+// Import budget progress to calculate alerts
+import { fetchBudgetProgress } from "../../../redux/Features/budgetSlice";
 
 const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, startDate, endDate }) => {
   const dispatch = useDispatch();
 
   const { categories } = useSelector((state) => state.category);
+
+  // Retrieve data needed for smart alerts
+  const { income, expense } = useSelector((state) => state.transaction);
+  const { progressBudgets } = useSelector((state) => state.budget);
 
   useEffect(() => {
     // Fetch categories when the modal opens
@@ -48,21 +59,79 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
     try {
       if (mode === "add") {
         await dispatch(addTransaction(payload)).unwrap();
+
+        // Smart alerts logic begins here
+        const amountNum = Number(formData.amount);
+
+        if (formData.type === "income") {
+          toast.success(`Awesome! You just added $${amountNum} to your income!`);
+        } else if (formData.type === "expense") {
+          
+          let budgetAlertFired = false;
+          
+          // Get all budgets that match the selected category
+          const matchingBudgets = progressBudgets?.filter(b => b.category?.name === formData.category);
+
+          if (matchingBudgets && matchingBudgets.length > 0) {
+            // Loop through each matching budget to check its individual limit
+            matchingBudgets.forEach(budget => {
+              const newSpent = budget.spent + amountNum;
+              const percentage = newSpent / budget.limit;
+              
+              // Capitalize the period name for the message
+              const periodText = budget.period ? budget.period.charAt(0).toUpperCase() + budget.period.slice(1) : "";
+
+              if (percentage >= 1) {
+                toast.error(`Red Alert: You exceeded your ${periodText} ${formData.category} budget!`);
+                budgetAlertFired = true;
+              } else if (percentage >= 0.9) {
+                toast.warn(`Careful! You've used over 90% of your ${periodText} ${formData.category} budget.`);
+                budgetAlertFired = true;
+              } else if (percentage >= 0.5) {
+                toast.info(`You've spent half of your ${periodText} ${formData.category} budget.`);
+              }
+            });
+          }
+
+          if (income > 0 && !budgetAlertFired) {
+             const newTotalExpense = expense + amountNum;
+             const overallPct = newTotalExpense / income;
+
+             if (overallPct >= 0.9) {
+               toast.error(`Warning: You have spent 90% of your total income this month!`);
+             } else if (overallPct >= 0.5) {
+               toast.info(`Heads up: You have spent 50% of your earned income.`);
+             } else {
+               toast.success("Transaction added successfully.");
+             }
+          } else if (!budgetAlertFired) {
+             toast.success("Transaction added successfully.");
+          }
+        }
+        // Smart alerts logic ends here
+
       } else {
         await dispatch(editTransaction({ transactionId: existingData._id, updatedData: payload })).unwrap();
+        // Added success toast for edit updates
+        toast.success("Transaction updated successfully.");
       }
 
       // Refresh Data
       dispatch(fetchTransactions({ userId, startDate, endDate }));
       
-      // dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
+      dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
       
-      // 🔥 3. Refetch categories just in case they added a brand new one in the FreeSolo input!
+      // Update budgets to reflect the new transaction
+      dispatch(fetchBudgetProgress(userId));
+
+      // 3. Refetch categories just in case they added a brand new one in the FreeSolo input!
       dispatch(fetchCategories());
       
       onClose();
     } catch (error) {
       console.error("Failed to save transaction", error);
+      // Added error toast
+      toast.error("Failed to save transaction.");
     }
   };
 
@@ -104,7 +173,7 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
               InputProps={{ startAdornment: <span style={{ marginRight: 8 }}>$</span> }}
             />
 
-            {/* 🔥 The dropdown now feeds off the database! */}
+            {/* The dropdown now feeds off the database! */}
             <Autocomplete
               freeSolo
               options={categorySuggestions}

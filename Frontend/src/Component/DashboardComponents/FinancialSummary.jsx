@@ -7,7 +7,7 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 
 import { useDispatch, useSelector } from "react-redux";
 import { fetchIncomeExpense } from "../../redux/Features/transactionSlice";
-import { fetchBalance } from "../../redux/Features/balanceSlice";
+// import { fetchBalance } from "../../redux/Features/balanceSlice";
 import { alpha } from "@mui/material/styles";
 
 const FinancialSummary = () => {
@@ -17,14 +17,14 @@ const FinancialSummary = () => {
     ? JSON.parse(localStorage.getItem("userInfo"))._id
     : null;
 
-  const { income, expense } = useSelector((state) => state.transaction);
-  const { balance } = useSelector((state) => state.balance);
+  const { income, expense , netBalance } = useSelector((state) => state.transaction);
+  
   const { startDate, endDate } = useSelector((state) => state.date);
 
   useEffect(() => {
     if (userId) {
       dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
-      dispatch(fetchBalance(userId));
+    
     }
   }, [startDate, endDate, dispatch, userId]);
 
@@ -78,11 +78,11 @@ const FinancialSummary = () => {
 
             <Box>
               <Typography variant="body2" color="text.secondary" fontWeight={600} fontSize={20}>
-                Current Balance
+                Wallet Balance
               </Typography>
 
               <Typography variant="h2" fontWeight={700} color="primary.main">
-                ${balance?.toLocaleString()}
+                ${netBalance?.toLocaleString()}
               </Typography>
             </Box>
           </CardContent>

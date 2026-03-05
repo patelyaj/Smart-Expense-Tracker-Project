@@ -2,8 +2,8 @@ import { createSlice } from "@reduxjs/toolkit";
 import dayjs from "dayjs";
 
 const initialState = {
-  startDate: dayjs().startOf("week").toISOString(),
-  endDate: dayjs().endOf("week").toISOString()
+  startDate: dayjs().startOf("month").toISOString(),
+  endDate: dayjs().endOf("month").toISOString()
 };
 
 const dateSlice = createSlice({

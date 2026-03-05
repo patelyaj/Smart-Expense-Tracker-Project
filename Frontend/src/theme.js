@@ -8,7 +8,6 @@ export const lightTheme = createTheme({
     
     text: {
       // 
-      // default : 
       primary: "#121212",   // Deep Black (Standard)
       secondary: "#666666", // Gray (Standard)
     },

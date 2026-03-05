@@ -83,6 +83,7 @@ const transactionSlice = createSlice({
         error: null,
         income : 0,
         expense: 0,
+        netBalance : 0,
         expenseChartData: []
     },
     reducers: {  },
@@ -147,6 +148,7 @@ const transactionSlice = createSlice({
             state.status = 'succeeded';
             state.income = action.payload.income;
             state.expense = action.payload.expense;
+            state.netBalance = action.payload.netBalance;
             console.log("Income and Expense fetched successfully", state.transactions);
         })
         .addCase(fetchIncomeExpense.rejected, (state, action) => {

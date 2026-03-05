@@ -22,6 +22,9 @@ import TransactionModal from "./TransactionModal";
 import { fetchTransactions, deleteTransaction, fetchIncomeExpense } from "../../../redux/Features/transactionSlice";
 import { fetchCategories } from "../../../redux/Features/categorySlice";
 
+// Import budget progress to keep it in sync for alerts
+import { fetchBudgetProgress } from "../../../redux/Features/budgetSlice";
+
 import DashboardDatePicker from "../../../Component/DashboardDatePicker";
 
 import { Dialog, DialogTitle, DialogContent } from "@mui/material";
@@ -59,6 +62,9 @@ const Transaction = () => {
     if (userId && startDate && endDate) {
       dispatch(fetchTransactions({ userId, startDate, endDate }));
       dispatch(fetchCategories()); 
+      // Fetch income, expense, and budgets so the modal has data for smart alerts
+      dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
+      dispatch(fetchBudgetProgress(userId));
     }
   }, [startDate, endDate, dispatch, userId]);
 
@@ -101,6 +107,8 @@ const Transaction = () => {
       await dispatch(deleteTransaction(txnId)).unwrap();
       dispatch(fetchTransactions({ userId, startDate, endDate }));
       dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
+      // Refresh budget progress after deletion
+      dispatch(fetchBudgetProgress(userId));
     }
   };
 
@@ -226,7 +234,7 @@ const Transaction = () => {
           {Object.entries(groupedTransactions).map(([date, txns]) => (
             <Box key={date}>
               <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ mb: 1.5, ml: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {date} ---------------------------------------------------------------------------------------------------------------------------------------
+                {date} ------------------------------------------------------------------------------------------------------------------------------------
               </Typography>
               
               <Paper sx={{ borderRadius: 3, overflow: 'hidden', border: (theme) => `1px solid ${theme.palette.divider}` }} elevation={0}>

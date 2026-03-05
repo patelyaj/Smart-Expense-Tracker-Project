@@ -13,60 +13,16 @@ import {
   CartesianGrid
 } from "recharts";
 
+// Imported MUI components and useTheme hook to access the current theme colors
+import { Box, Paper, Typography, useTheme } from "@mui/material";
+
 import { fetchExpenseByCategory } from "../../redux/Features/transactionSlice";
-
-const COLORS = ["#22c55e", "#ef4444"];
-
-
-// 🔹 Custom label renderer for donut chart
-const renderCashFlowLabel = ({
-  cx,
-  cy,
-  midAngle,
-  innerRadius,
-  outerRadius,
-  percent,
-  name
-}) => {
-  const RADIAN = Math.PI / 180;
-
-  const radius = outerRadius + 25;
-
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-  const color = name === "Income" ? "#22c55e" : "#ef4444";
-
-  return (
-    <g>
-      {/* Text label */}
-      <text
-        x={x}
-        y={y}
-        fill={color}
-        textAnchor={x > cx ? "start" : "end"}
-        dominantBaseline="central"
-        style={{ fontSize: 14, fontWeight: 600 }}
-      >
-        {name} {(percent * 100).toFixed(1)}%
-      </text>
-
-      {/* Connector line */}
-      <line
-        x1={cx + outerRadius * Math.cos(-midAngle * RADIAN)}
-        y1={cy + outerRadius * Math.sin(-midAngle * RADIAN)}
-        x2={x}
-        y2={y}
-        stroke={color}
-        strokeWidth={2}
-      />
-    </g>
-  );
-};
-
 
 function AnalyticsSection() {
   const dispatch = useDispatch();
+  
+  // Access the active theme (light or dark)
+  const theme = useTheme();
 
   const { income, expense, expenseChartData } = useSelector(
     (state) => state.transaction
@@ -87,28 +43,83 @@ function AnalyticsSection() {
     { name: "Expense", value: expense || 0 }
   ];
 
-  return (
-    <div style={{ marginTop: 30 }}>
-      <h2 style={{ fontWeight: 800, marginBottom: 30 }}>Analytics</h2>
+  // Defined theme-aware colors for the pie chart using your success and error palette
+  const pieColors = [theme.palette.success.main, theme.palette.error.main];
 
-      <div
-        style={{
+  // Custom label renderer for donut chart moved inside the component to access theme colors
+  const renderCashFlowLabel = ({
+    cx,
+    cy,
+    midAngle,
+    innerRadius,
+    outerRadius,
+    percent,
+    name
+  }) => {
+    const RADIAN = Math.PI / 180;
+    const radius = outerRadius + 25;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    // Apply specific theme color based on income or expense
+    const color = name === "Income" ? theme.palette.success.main : theme.palette.error.main;
+
+    return (
+      <g>
+        {/* Text label */}
+        <text
+          x={x}
+          y={y}
+          fill={color}
+          textAnchor={x > cx ? "start" : "end"}
+          dominantBaseline="central"
+          style={{ fontSize: 14, fontWeight: 600 }}
+        >
+          {name} {(percent * 100).toFixed(1)}%
+        </text>
+
+        {/* Connector line */}
+        <line
+          x1={cx + outerRadius * Math.cos(-midAngle * RADIAN)}
+          y1={cy + outerRadius * Math.sin(-midAngle * RADIAN)}
+          x2={x}
+          y2={y}
+          stroke={color}
+          strokeWidth={2}
+        />
+      </g>
+    );
+  };
+
+  return (
+    <Box sx={{ mt: 4 }}>
+      <Typography variant="h5" sx={{ fontWeight: 800, mb: 4, color: "text.primary" }}>
+        Analytics
+      </Typography>
+
+      <Box
+        sx={{
           display: "grid",
-          gridTemplateColumns: "1.2fr 2fr",
-          gap: "30px"
+          // Made the grid responsive: stack on mobile, side-by-side on desktop
+          gridTemplateColumns: { xs: "1fr", md: "1.2fr 2fr" },
+          gap: 4
         }}
       >
 
         {/* CASH FLOW DONUT */}
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: 14,
-            padding: 25,
-            border: "1px solid #e5e7eb"
+        <Paper
+          elevation={0}
+          sx={{
+            bgcolor: "background.paper",
+            borderRadius: 3,
+            p: 3,
+            border: "1px solid",
+            borderColor: "divider"
           }}
         >
-          <h4 style={{ marginBottom: 20 }}>Cash Flow</h4>
+          <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: "text.primary" }}>
+            Cash Flow
+          </Typography>
 
           <div style={{ width: "100%", height: 400 }}>
             <ResponsiveContainer>
@@ -124,32 +135,44 @@ function AnalyticsSection() {
                   label={renderCashFlowLabel}
                 >
                   {incomeExpenseData.map((entry, index) => (
-                    <Cell key={index} fill={COLORS[index]} />
+                    <Cell key={index} fill={pieColors[index]} />
                   ))}
                 </Pie>
 
                 <Tooltip
                   formatter={(value) => `$${value.toLocaleString()}`}
+                  // Theme-aware tooltip styling
+                  contentStyle={{ 
+                    backgroundColor: theme.palette.background.paper,
+                    borderColor: theme.palette.divider,
+                    color: theme.palette.text.primary,
+                    borderRadius: '8px'
+                  }}
+                  itemStyle={{ color: theme.palette.text.primary }}
                 />
 
               </PieChart>
             </ResponsiveContainer>
           </div>
 
-        </div>
+        </Paper>
 
 
 
         {/* BAR CHART */}
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: 14,
-            padding: 25,
-            border: "1px solid #e5e7eb"
+        <Paper
+          elevation={0}
+          sx={{
+            bgcolor: "background.paper",
+            borderRadius: 3,
+            p: 3,
+            border: "1px solid",
+            borderColor: "divider"
           }}
         >
-          <h4 style={{ marginBottom: 20 }}>Top Expenses by Category</h4>
+          <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: "text.primary" }}>
+            Top Expenses by Category
+          </Typography>
 
           <div style={{ width: "100%", height: 400 }}>
             {expenseChartData?.length > 0 ? (
@@ -161,7 +184,7 @@ function AnalyticsSection() {
                   <CartesianGrid
                     strokeDasharray="4 4"
                     vertical={false}
-                    stroke="#e5e7eb"
+                    stroke={theme.palette.divider} // Theme-aware grid lines
                   />
 
                   <XAxis
@@ -173,21 +196,31 @@ function AnalyticsSection() {
                     interval={0}
                     height={70}
                     tickMargin={20}
+                    tick={{ fill: theme.palette.text.secondary }} // Theme-aware axis text
                   />
 
                   <YAxis
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(value) => `$${value}`}
+                    tick={{ fill: theme.palette.text.secondary }} // Theme-aware axis text
                   />
 
                   <Tooltip
                     formatter={(value) => `$${value.toLocaleString()}`}
+                    // Theme-aware tooltip styling
+                    contentStyle={{ 
+                      backgroundColor: theme.palette.background.paper,
+                      borderColor: theme.palette.divider,
+                      color: theme.palette.text.primary,
+                      borderRadius: '8px'
+                    }}
+                    cursor={{ fill: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }}
                   />
 
                   <Bar
                     dataKey="amount"
-                    fill="#3b82f6"
+                    fill={theme.palette.primary.main} // Theme-aware bar color
                     radius={[6, 6, 0, 0]}
                     barSize={45}
                   />
@@ -201,7 +234,7 @@ function AnalyticsSection() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#888"
+                  color: theme.palette.text.secondary // Theme-aware fallback text
                 }}
               >
                 No expense data available
@@ -209,9 +242,9 @@ function AnalyticsSection() {
             )}
           </div>
 
-        </div>
-      </div>
-    </div>
+        </Paper>
+      </Box>
+    </Box>
   );
 }
 
