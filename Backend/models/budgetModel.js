@@ -11,9 +11,9 @@ const budgetSchema = new mongoose.Schema({
     category: { 
       type : mongoose.Schema.Types.ObjectId, 
       ref: 'Category', 
-      required: true 
+      required: false 
     },
-  
+
 
   limit: {
     type: Number,
@@ -40,7 +40,7 @@ const budgetSchema = new mongoose.Schema({
 
 budgetSchema.index(
   { userId: 1, category: 1, period: 1, startDate: 1 },
-  { unique: true }
+  { unique: true, partialFilterExpression: { category: { $exists: true } } }
 );
 
 export default mongoose.model("Budget", budgetSchema);

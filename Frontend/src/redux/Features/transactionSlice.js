@@ -1,6 +1,18 @@
 import { createAsyncThunk ,createSlice} from "@reduxjs/toolkit";
 import api from "../../utils/axiosInstance";
 
+const fetchExpenseByCategory = createAsyncThunk(
+    'transaction/fetchExpenseByCategory',
+    async ({userId, startDate, endDate}, { rejectWithValue }) => {
+        try {
+            const response = await api.get(`/transactions/fetchexpensebycategory/${userId}`, {params:{startDate,endDate}, withCredentials: true });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to fetch chart data');
+        }
+    }
+);
+
 const fetchTransactions = createAsyncThunk(
     'transaction/fetchTransactions',
     async ({userId,startDate,endDate}, { rejectWithValue }) => {
@@ -70,7 +82,8 @@ const transactionSlice = createSlice({
         status: 'idle',
         error: null,
         income : 0,
-        expense: 0
+        expense: 0,
+        expenseChartData: []
     },
     reducers: {  },
     extraReducers: (builder) => {
@@ -82,7 +95,7 @@ const transactionSlice = createSlice({
             state.status = 'succeeded';
             // Assuming your backend returns an array of transactions
             state.transactions = action.payload; 
-            console.log("Transactions fetched successfully", action.payload);
+            console.log("Transactions fetched successfully", state.transactions);
         })
         .addCase(fetchTransactions.rejected, (state, action) => {
             state.status = 'failed';
@@ -106,8 +119,10 @@ const transactionSlice = createSlice({
             state.status = 'succeeded';
             const index = state.transactions.findIndex(t => t._id === action.payload.transaction._id);
             if (index !== -1) {
-                state.transactions[index] = action.payload.transaction;
+                state.transactions[index] = { ...action.payload.transaction }
             }
+
+            console.log("Transaction edited successfully check length",state.transactions);
         })
         .addCase(editTransaction.rejected, (state, action) => {
             state.status = 'failed';
@@ -132,8 +147,20 @@ const transactionSlice = createSlice({
             state.status = 'succeeded';
             state.income = action.payload.income;
             state.expense = action.payload.expense;
+            console.log("Income and Expense fetched successfully", state.transactions);
         })
         .addCase(fetchIncomeExpense.rejected, (state, action) => {
+            state.status = 'failed';
+            state.error = action.payload;
+        })
+        .addCase(fetchExpenseByCategory.pending, (state) => {
+            state.status = 'loading';
+        })
+        .addCase(fetchExpenseByCategory.fulfilled, (state, action) => {
+            state.status = 'succeeded';
+            state.expenseChartData = action.payload;
+        })
+        .addCase(fetchExpenseByCategory.rejected, (state, action) => {
             state.status = 'failed';
             state.error = action.payload;
         });
@@ -141,4 +168,4 @@ const transactionSlice = createSlice({
 });
 
 export default transactionSlice.reducer;
-export { fetchTransactions,addTransaction, editTransaction, deleteTransaction, fetchIncomeExpense };
+export {fetchExpenseByCategory, fetchTransactions,addTransaction, editTransaction, deleteTransaction, fetchIncomeExpense };

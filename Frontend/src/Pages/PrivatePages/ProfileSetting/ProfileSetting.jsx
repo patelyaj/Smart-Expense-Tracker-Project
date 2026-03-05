@@ -1,39 +1,100 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Box, Typography, TextField, Switch, Avatar, Divider } from '@mui/material';
+import { Box, Typography, TextField, Switch, Avatar, Divider, Button, CircularProgress } from '@mui/material';
 import { toggleTheme } from '../../../redux/Features/authSlice';
+import api from '../../../utils/axiosInstance'; // Using your existing axios instance
+import { toast } from 'react-toastify'; // Standard React popup library
 
 function ProfileSetting() {
   const dispatch = useDispatch();
   const themeMode = useSelector((state) => state.auth.themeMode);
   
-  // Pull user data from localStorage
-  const userInfo = JSON.parse(localStorage.getItem('userInfo')) || {};
+  // 1. Pull initial user data from localStorage
+  const initialUserInfo = JSON.parse(localStorage.getItem('userInfo')) || {};
+
+  // 2. Create editable state for the form
+  const [formData, setFormData] = useState({
+    username: initialUserInfo.username || "",
+    email: initialUserInfo.email || "",
+    mobileno: initialUserInfo.mobileno || ""
+  });
+
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 3. Handle input typing
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // 4. Determine if the user actually changed anything
+  const isModified = 
+    formData.username !== initialUserInfo.username ||
+    formData.email !== initialUserInfo.email ||
+    formData.mobileno !== initialUserInfo.mobileno;
+
+  // 5. Handle Save Changes
+  const handleSave = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Make API call to backend (ensure you have this route set up in authRoutes.js!)
+      const response = await api.patch(`/users/updateprofile/${initialUserInfo._id}`, formData);
+      
+      // Update local storage with the new data so it persists on refresh
+      const updatedUser = { ...initialUserInfo, ...formData };
+      localStorage.setItem('userInfo', JSON.stringify(updatedUser));
+      
+      // Show success popup!
+      toast.success("Profile updated successfully!");
+      
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Failed to update profile");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Box sx={{ p: 2 }}>
       
-      {/* 1. Header */}
-      <Typography variant="h5" fontWeight="bold" mb={1}>
-        Profile Settings
-      </Typography>
-      <Typography color="text.secondary" mb={3}>
-        Manage your personal information and preferences.
-      </Typography>
+      {/* Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+        <Box>
+          <Typography variant="h5" fontWeight="bold" mb={1}>
+            Profile Settings
+          </Typography>
+          <Typography color="text.secondary" mb={3}>
+            Manage your personal information and preferences.
+          </Typography>
+        </Box>
+
+        {/* 👇 NEW: Save Changes Button */}
+        <Button 
+          variant="contained" 
+          color="primary" 
+          disabled={!isModified || isLoading} 
+          onClick={handleSave}
+          disableElevation
+          sx={{ borderRadius: 2, fontWeight: 600, textTransform: 'none', px: 3 }}
+        >
+          {isLoading ? <CircularProgress size={24} color="inherit" /> : "Save Changes"}
+        </Button>
+      </Box>
 
       <Divider sx={{ mb: 4 }} />
 
-      {/* 2. Simple Form Container */}
+      {/* Form Container */}
       <Box sx={{ maxWidth: 400 }}>
 
         {/* Avatar Section */}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
           <Avatar sx={{ width: 72, height: 72, bgcolor: 'primary.main', fontSize: '2.5rem' }}>
-            {userInfo.username ? userInfo.username.charAt(0).toUpperCase() : "U"}
+            {formData.username ? formData.username.charAt(0).toUpperCase() : "U"}
           </Avatar>
           <Box sx={{ ml: 2 }}>
             <Typography variant="h6" fontWeight="bold">
-              {userInfo.username || "User"}
+              {formData.username || "User"}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Personal Account
@@ -50,8 +111,9 @@ function ProfileSetting() {
             fullWidth
             size="small"
             variant="outlined"
-            value={userInfo.username || ""}
-            disabled // Remove this if you add an edit feature later
+            name="username"          // <-- Added name
+            value={formData.username} // <-- Bound to local state
+            onChange={handleChange}  // <-- Bound to handler
             sx={{ bgcolor: 'background.paper' }}
           />
         </Box>
@@ -65,8 +127,9 @@ function ProfileSetting() {
             fullWidth
             size="small"
             variant="outlined"
-            value={userInfo.email || ""}
-            disabled 
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
             sx={{ bgcolor: 'background.paper' }}
           />
         </Box>
@@ -80,8 +143,9 @@ function ProfileSetting() {
             fullWidth
             size="small"
             variant="outlined"
-            value={userInfo.mobileno || ""}
-            disabled 
+            name="mobileno"
+            value={formData.mobileno}
+            onChange={handleChange}
             sx={{ bgcolor: 'background.paper' }}
           />
         </Box>

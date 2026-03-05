@@ -29,6 +29,18 @@ const getRandomInt = (min, max) =>
 const getRandomElement = (arr) =>
   arr[Math.floor(Math.random() * arr.length)];
 
+// Realistic Dummy Titles for random expenses
+const expenseTitles = [
+  "Grocery Shopping at Walmart", "Uber Ride to Downtown", "Starbucks Coffee", 
+  "Amazon Prime Order", "Netflix Subscription", "Electricity Bill", 
+  "Dinner at Olive Garden", "Movie Theater Tickets", "Monthly Gym Membership", 
+  "Pharmacy Run", "Books from Barnes & Noble", "Office Supplies", "Gas Station Fill-up"
+];
+
+const freelanceTitles = [
+  "Upwork Client Payment", "Fiverr Web Design Gig", "Consulting Fee", "Logo Design Project"
+];
+
 const seedDatabase = async () => {
   try {
     console.log("⏳ Connecting to Database...");
@@ -108,6 +120,7 @@ const seedDatabase = async () => {
 
         transactions.push({
           userId: dummyUser._id,
+          title: "Tech Corp Monthly Salary", // 👈 ADDED TITLE
           amount: salaryAmount,
           type: "income",
           category: salaryCategory._id,
@@ -128,6 +141,7 @@ const seedDatabase = async () => {
 
         transactions.push({
           userId: dummyUser._id,
+          title: "Downtown Apartment Rent", // 👈 ADDED TITLE
           amount: rentAmount,
           type: "expense",
           category: rentCategory._id,
@@ -152,6 +166,7 @@ const seedDatabase = async () => {
 
         transactions.push({
           userId: dummyUser._id,
+          title: getRandomElement(expenseTitles), // 👈 ADDED RANDOM TITLE
           amount,
           type: "expense",
           category: randomCategory._id,
@@ -173,6 +188,7 @@ const seedDatabase = async () => {
 
           transactions.push({
             userId: dummyUser._id,
+            title: getRandomElement(freelanceTitles), // 👈 ADDED RANDOM TITLE
             amount: freelanceAmount,
             type: "income",
             category: freelanceCategory._id,

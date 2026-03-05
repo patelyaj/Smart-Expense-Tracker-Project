@@ -10,8 +10,10 @@ import { DatePicker } from "@mui/x-date-pickers";
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
+
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import SearchIcon from '@mui/icons-material/Search';
 
@@ -21,6 +23,8 @@ import { fetchTransactions, deleteTransaction, fetchIncomeExpense } from "../../
 import { fetchCategories } from "../../../redux/Features/categorySlice";
 
 import DashboardDatePicker from "../../../Component/DashboardDatePicker";
+
+import { Dialog, DialogTitle, DialogContent } from "@mui/material";
 
 const Transaction = () => {
   const dispatch = useDispatch();
@@ -41,6 +45,9 @@ const Transaction = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
+  const [descModalOpen, setDescModalOpen] = useState(false);
+  const [selectedDescription, setSelectedDescription] = useState("");
+
   // Temporary date values used inside the popover before clicking "Apply"
   const [anchorEl, setAnchorEl] = useState(null);
 
@@ -56,20 +63,26 @@ const Transaction = () => {
   }, [startDate, endDate, dispatch, userId]);
 
   // Apply frontend filters (category + search)
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter((txn) => {
-      const catName = txn.category?.name || "Uncategorized";
-      const description = txn.description || "";
+ const filteredTransactions = useMemo(() => {
+  const query = searchQuery.toLowerCase();
 
-      const matchesCategory =
-        selectedCategory === "all" || catName === selectedCategory;
+  return transactions.filter((txn) => {
+    const catName = txn.category?.name || "Uncategorized";
+    const description = txn.description || "";
+    const title = txn.title || "";
 
-      const matchesSearch =
-        description.toLowerCase().includes(searchQuery.toLowerCase());
+    // Category filter
+    const matchesCategory =
+      selectedCategory === "all" || catName === selectedCategory;
 
-      return matchesCategory && matchesSearch;
-    });
-  }, [transactions, selectedCategory, searchQuery]);
+    // Search filter (title OR description)
+    const matchesSearch =
+      title.toLowerCase().includes(query) ||
+      description.toLowerCase().includes(query);
+
+    return matchesCategory && matchesSearch;
+  });
+}, [transactions, selectedCategory, searchQuery]);
 
   // Group transactions by date for display
   const groupedTransactions = useMemo(() => {
@@ -239,12 +252,47 @@ const Transaction = () => {
                           }}>
                             {isIncome ? <TrendingUpIcon /> : <TrendingDownIcon />}
                           </Avatar>
-                          <Box>
-                            <Typography variant="body1" fontWeight={700} color="text.primary" sx={{ mb: 0.25 }}>
-                              {catName}
-                            </Typography>
-                            <Chip label={description} size="small" sx={{ height: 20, fontSize: '0.7rem', fontWeight: 600 }} />
-                          </Box>
+                          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+
+                              <Typography
+                                variant="subtitle1"
+                                fontWeight={700}
+                                sx={{ lineHeight: 1.2 }}
+                              >
+                                {txn.title}
+                              </Typography>
+
+                              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: "text.secondary", fontWeight: 500 }}
+                                >
+                                  {catName}
+                                </Typography>
+
+                                {description && (
+                                  <Button
+                                    size="small"
+                                    sx={{
+                                      textTransform: "none",
+                                      fontSize: "0.7rem",
+                                      minWidth: "auto",
+                                      padding: "0px 6px",
+                                      color: "primary.main"
+                                    }}
+                                    onClick={() => {
+                                      setSelectedDescription(description);
+                                      setDescModalOpen(true);
+                                    }}
+                                  >
+                                    • View description
+                                  </Button>
+                                )}
+
+                              </Box>
+
+                            </Box>
                         </Box>
 
                         {/* Right side actions */}
@@ -285,6 +333,21 @@ const Transaction = () => {
           endDate={endDate}
         />
       )}
+
+      <Dialog
+        open={descModalOpen}
+        onClose={() => setDescModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Description</DialogTitle>
+
+        <DialogContent>
+          <Typography>
+            {selectedDescription || "No description provided."}
+          </Typography>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

@@ -8,6 +8,8 @@ import transactionRouter from './routes/transactionRoutes.js';
 import categoryRouter from './routes/categoryRoutes.js';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+
+import budgetRouter from './routes/budgetroutes.js';
 // import 
 
 configDotenv();
@@ -30,7 +32,7 @@ app.use('/expensetracker/users',authRoutes);
 app.use('/expensetracker/balance/',balanceRouter);
 app.use('/expensetracker/transactions/',transactionRouter);
 app.use('/expensetracker/categories/',categoryRouter);
-
+app.use('/expensetracker/budget/',budgetRouter);
 
 app.get('/checkbackend',(req,res)=>{
     try {

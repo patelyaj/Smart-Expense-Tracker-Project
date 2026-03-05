@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import categoryModel from "../models/categoryModel.js";
 
 export const fetchTransactions = async (req, res) => {
+    console.log("fetch transactions api called",req.params);
     try {
         const userId = req.params.id;
         const { startDate, endDate } = req.query; 
@@ -18,6 +19,8 @@ export const fetchTransactions = async (req, res) => {
             .sort({ date: -1 })
             .lean(); 
 
+            console.log("Transactions fetched from DB finished ", transactions);
+
         res.status(200).json(transactions);
     } catch(err){
         res.status(500).json({message:"Internal server error"});
@@ -25,10 +28,11 @@ export const fetchTransactions = async (req, res) => {
 }
 
 export const addTransaction = async (req, res) => {
+    console.log("add transaction api called",req.body);
     try {
-        const {userId, amount, type, category, date, description} = req.body;
+        const {userId, title,amount, type, category, date, description} = req.body;
         
-        if(!userId || !amount || !type || !category || !date){
+        if(!userId || !amount || !type || !category || !date || !title) {
             return res.status(400).json({message:"Missing required fields"});
         }
 
@@ -41,6 +45,7 @@ export const addTransaction = async (req, res) => {
         const newTransaction = new transactionModel({
             userId,
             amount,
+            title,
             type,
             category: categoryDoc._id,
             date,
@@ -50,6 +55,8 @@ export const addTransaction = async (req, res) => {
         
         await newTransaction.populate('category', 'name type');
 
+        console.log("Transaction added to DB finished ", newTransaction);
+
         res.status(201).json({message:"Transaction added successfully", transaction: newTransaction});
     } catch(err) {
         console.error(err);
@@ -58,20 +65,26 @@ export const addTransaction = async (req, res) => {
 }
 
 export const editTransaction = async (req, res) => {
+    console.log("edit transaction api called",req.body);
     try {
         const transactionId = req.params.id;
-        const {amount, type, category, date, description} = req.body;
+        console.log("===================transactionId when editing trasnsaction --- ",transactionId);
+        const {amount, type, category, date, description, title} = req.body;
 
         let categoryDoc = await categoryModel.findOne({ name: category, userId: req.user.userId });
         if (!categoryDoc) {
             categoryDoc = await categoryModel.create({ name: category, type, userId: req.user.userId });
         }
 
+        console.log("categoryDoc when editing trasnsaction . ihace to see id it returns",categoryDoc);
+
         const edited = await transactionModel.findByIdAndUpdate(transactionId, {
-            amount, type, category: categoryDoc._id, date, description
+            amount, type, category: categoryDoc._id, date, description ,title
         }, {new: true}).populate('category', 'name type');
 
         if(!edited) return res.status(404).json({message:"Transaction not found"});
+
+        console.log("Transaction edited in DB finished ", edited);
         
         res.status(200).json({message:"Transaction updated successfully", transaction: edited});
     } catch(err) {
@@ -81,6 +94,7 @@ export const editTransaction = async (req, res) => {
 
 // delete 
 export const deleteTransaction = async (req, res) => {
+    console.log("delete transaction api called",req.params);
   try {
     const  transactionId  = req.params.id;
 
@@ -94,10 +108,13 @@ export const deleteTransaction = async (req, res) => {
       return res.status(404).json({ message: "Transaction not found" });
     }
 
+    console.log("Transaction soft deleted in DB finished ", deleted);
+
     res.status(200).json({
       message: "Transaction soft deleted successfully",
       transactionId
     });
+
 
   } catch (err) {
     console.error("Error deleting transaction:", err);
@@ -107,12 +124,14 @@ export const deleteTransaction = async (req, res) => {
 
 // income expense
 export const fetchIncomeExpense = async (req, res) => {
-    console.log("hi");
+    console.log("fetch income expense api called");
+    console.log("req.params", req.params.id);
+    console.log("req.query", req.user.userId);
     try {
-        const userId = req.user.userId;
+        const userId = req.params.id;
         console.log(userId,"u");
         const { startDate, endDate } = req.query;
-        console.log(startDate,"done",endDate);
+        console.log("check", startDate, "done", endDate);
 
         const matchStage = {
             // CRITICAL: aggregate() requires manual casting to ObjectId
@@ -142,6 +161,8 @@ export const fetchIncomeExpense = async (req, res) => {
             }
         ]);
 
+        console.log("Aggregation summary result:", summary);
+
         let income = 0;
         let expense = 0;
 
@@ -151,6 +172,7 @@ export const fetchIncomeExpense = async (req, res) => {
             if (item._id == 'expense') expense = item.totalAmount;
         });
 
+        console.log("fetch income expense finished Calculated Income and Expense:", { income, expense });
         console.log("Income:", income, "Expense:", expense);
 
         res.status(200).json({ 
@@ -161,6 +183,47 @@ export const fetchIncomeExpense = async (req, res) => {
 
     } catch (err) {
         console.error("Error getting transaction summary:", err);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+
+export const fetchExpenseByCategory = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const { startDate, endDate } = req.query;
+
+        const matchStage = {
+            userId: new mongoose.Types.ObjectId(userId),
+            type: "expense",
+            isDeleted: false
+        };
+
+        if (startDate && endDate) {
+            matchStage.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
+        }
+
+        const categoryData = await transactionModel.aggregate([
+            { $match: matchStage }, // 1. Find only expenses for this user in this date range
+            { $group: { _id: "$category", amount: { $sum: "$amount" } } }, // 2. Group by category ID and sum amounts
+            { $lookup: { // 3. Join with Category collection to get the actual category name
+                from: "categories", 
+                localField: "_id", 
+                foreignField: "_id", 
+                as: "categoryDoc" 
+            }},
+            { $unwind: "$categoryDoc" }, // 4. Flatten the array from lookup
+            { $project: { // 5. Format exactly how Recharts wants it!
+                _id: 0,
+                name: "$categoryDoc.name",
+                amount: 1
+            }},
+            { $sort: { amount: -1 } } // 6. Sort highest expense to lowest
+        ]);
+
+        res.status(200).json(categoryData);
+    } catch (err) {
+        console.error("Error fetching category chart data:", err);
         res.status(500).json({ message: "Internal server error" });
     }
 };

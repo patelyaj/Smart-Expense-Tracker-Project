@@ -167,3 +167,25 @@ export const logoutUser = async(req,res)=>{
         res.status(500).json('internal server error logout failed');
     }
 }
+
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { username, email, mobileno } = req.body;
+    const userId = req.params.id;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId, 
+      { username, email, mobileno }, 
+      { new: true, runValidators: true }
+    ).select('-password'); // Don't send password back!
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ message: "Profile updated successfully", user: updatedUser });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};

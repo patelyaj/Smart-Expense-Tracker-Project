@@ -1,17 +1,22 @@
 import React, { useEffect } from "react";
 import { Grid, Card, CardContent, Typography, Box, Avatar } from "@mui/material";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import TrendingDownIcon from "@mui/icons-material/TrendingDown";
+
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import PaymentsIcon from "@mui/icons-material/Payments";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+
 import { useDispatch, useSelector } from "react-redux";
 import { fetchIncomeExpense } from "../../redux/Features/transactionSlice";
 import { fetchBalance } from "../../redux/Features/balanceSlice";
-import { alpha } from '@mui/material/styles';
+import { alpha } from "@mui/material/styles";
 
 const FinancialSummary = () => {
   const dispatch = useDispatch();
-  const userId = localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo'))._id : null;
-  
+
+  const userId = localStorage.getItem("userInfo")
+    ? JSON.parse(localStorage.getItem("userInfo"))._id
+    : null;
+
   const { income, expense } = useSelector((state) => state.transaction);
   const { balance } = useSelector((state) => state.balance);
   const { startDate, endDate } = useSelector((state) => state.date);
@@ -23,40 +28,98 @@ const FinancialSummary = () => {
     }
   }, [startDate, endDate, dispatch, userId]);
 
+  const cardStyle = {
+    borderRadius: 3,
+    border: (theme) => `1px solid ${theme.palette.divider}`,
+    bgcolor: "background.paper",
+    boxShadow: "none",
+    transition: "all 0.25s ease",
+    "&:hover": {
+      transform: "translateY(-4px)",
+      boxShadow: 4,
+    },
+    p : 5
+  };
+
   return (
-    <Grid container spacing={3} sx={{ mb: 4 }}>
-      {/* 2. BALANCE */}
-      <Grid item xs={12} md={5}>
-        <Card sx={{ borderRadius: 3, border: (theme) => `1px solid ${theme.palette.divider}`, boxShadow: 'none', bgcolor: 'background.paper' }}>
-          <CardContent sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar sx={{ width: 50, height: 50, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1), color: 'primary.main' }}>
+    <Grid
+      container
+      spacing={3}
+      justifyContent="center" 
+      sx={{ mb: 4 }}
+      
+    >
+
+      {/* BALANCE */}
+      <Grid item xs={12} sm={6} md={4} sx={{ maxWidth: 380 }}>
+        <Card sx={cardStyle 
+        }>
+          <CardContent
+            sx={{
+              p: 3,
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              height: 110,
+            }}
+          >
+            <Avatar
+              sx={{
+                width: 56,
+                height: 56,
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+                color: "primary.main",
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
               <AccountBalanceWalletIcon />
             </Avatar>
-            
+
             <Box>
-              <Typography variant="body2" color="text.secondary" fontWeight={600}>
+              <Typography variant="body2" color="text.secondary" fontWeight={600} fontSize={20}>
                 Current Balance
               </Typography>
-              <Typography variant="h5" fontWeight={700} color="primary.main">
+
+              <Typography variant="h2" fontWeight={700} color="primary.main">
                 ${balance?.toLocaleString()}
               </Typography>
             </Box>
           </CardContent>
         </Card>
       </Grid>
-      
-      {/* 1. INCOME (LEFT) */}
-      <Grid item xs={12} md={4}>
-        <Card sx={{ borderRadius: 3, border: (theme) => `1px solid ${theme.palette.divider}`, boxShadow: 'none', bgcolor: 'background.paper' }}>
-          <CardContent sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar sx={{ width: 50, height: 50, bgcolor: (theme) => alpha(theme.palette.success.main, 0.1), color: 'success.main' }}>
-              <TrendingUpIcon />
+
+      {/* INCOME */}
+      <Grid item xs={12} sm={6} md={4} sx={{ maxWidth: 380 }}>
+        <Card sx={cardStyle}>
+          <CardContent
+            sx={{
+              p: 3,
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              height: 110,
+            }}
+          >
+            <Avatar
+              sx={{
+                width: 56,
+                height: 56,
+                bgcolor: (theme) => alpha(theme.palette.success.main, 0.12),
+                color: "success.main",
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <PaymentsIcon />
             </Avatar>
+
             <Box>
               <Typography variant="body2" color="text.secondary" fontWeight={600}>
                 Total Income
               </Typography>
-              <Typography variant="h5" fontWeight={700} color="success.main">
+
+              <Typography variant="h4" fontWeight={700} color="success.main">
                 +${income?.toLocaleString()}
               </Typography>
             </Box>
@@ -64,19 +127,37 @@ const FinancialSummary = () => {
         </Card>
       </Grid>
 
-
-      {/* 3. EXPENSE (RIGHT) */}
-      <Grid item xs={12} md={4}>
-        <Card sx={{ borderRadius: 3, border: (theme) => `1px solid ${theme.palette.divider}`, boxShadow: 'none', bgcolor: 'background.paper' }}>
-          <CardContent sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar sx={{ width: 50, height: 50, bgcolor: (theme) => alpha(theme.palette.error.main, 0.1), color: 'error.main' }}>
-              <TrendingDownIcon />
+      {/* EXPENSE */}
+      <Grid item xs={12} sm={6} md={4} sx={{ maxWidth: 380 }}>
+        <Card sx={cardStyle}>
+          <CardContent
+            sx={{
+              p: 3,
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              height: 110,
+            }}
+          >
+            <Avatar
+              sx={{
+                width: 56,
+                height: 56,
+                bgcolor: (theme) => alpha(theme.palette.error.main, 0.12),
+                color: "error.main",
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <ReceiptLongIcon />
             </Avatar>
+
             <Box>
               <Typography variant="body2" color="text.secondary" fontWeight={600}>
                 Total Expense
               </Typography>
-              <Typography variant="h5" fontWeight={700} color="error.main">
+
+              <Typography variant="h4" fontWeight={700} color="error.main">
                 -${expense?.toLocaleString()}
               </Typography>
             </Box>

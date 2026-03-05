@@ -5,10 +5,15 @@ export const lightTheme = createTheme({
     mode: "light",
     primary: { main: "#1976d2" }, // Standard Blue
     background: { default: "#f4f6f8", paper: "#ffffff" },
+    
     text: {
+      // 
+      // default : 
       primary: "#121212",   // Deep Black (Standard)
       secondary: "#666666", // Gray (Standard)
     },
+
+    // 
     success: { main: "#35de3d" },
     error: { main: "#f43333" }
   },
@@ -23,6 +28,8 @@ export const darkTheme = createTheme({
       primary: "#ffffff",   // Pure White (Standard)
       secondary: "#b0b0b0", // Light Gray (Standard)
     },
+
+    // 
     success: { main: "#35de3d" },
     error: { main: "#f43333" }
   },

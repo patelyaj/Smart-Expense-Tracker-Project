@@ -23,6 +23,7 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
   const existingCategoryName = existingData?.category?.name || existingData?.category || "";
 
   const [formData, setFormData] = useState({
+    title: existingData?.title || "",
     amount: existingData?.amount || "",
     type: existingData?.type || "expense",
     category: existingCategoryName,
@@ -53,7 +54,8 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
 
       // Refresh Data
       dispatch(fetchTransactions({ userId, startDate, endDate }));
-      dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
+      
+      // dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
       
       // 🔥 3. Refetch categories just in case they added a brand new one in the FreeSolo input!
       dispatch(fetchCategories());
@@ -85,6 +87,14 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
               <MenuItem value="income">Income</MenuItem>
             </TextField>
 
+              <TextField
+                  type="text"
+                  label="Title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  fullWidth required
+                />
+                
             <TextField
               type="number"
               label="Amount"
