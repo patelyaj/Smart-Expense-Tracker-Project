@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Typography, TextField, Switch, Avatar, Divider, Button, CircularProgress } from '@mui/material';
 import { toggleTheme } from '../../../redux/Features/authSlice';
-import api from '../../../utils/axiosInstance'; // Using your existing axios instance
-import { toast } from 'react-toastify'; // Standard React popup library
+import api from '../../../utils/axiosInstance';
+import { toast } from 'react-toastify'; 
 
 function ProfileSetting() {
   const dispatch = useDispatch();
@@ -37,8 +37,8 @@ function ProfileSetting() {
     try {
       setIsLoading(true);
       
-      // Make API call to backend (ensure you have this route set up in authRoutes.js!)
-      const response = await api.patch(`/users/updateprofile/${initialUserInfo._id}`, formData);
+      // FIX: Changed to .post() and fixed capitalization to match backend authRoutes.js
+      const response = await api.post(`/users/updateProfile/${initialUserInfo._id}`, formData);
       
       // Update local storage with the new data so it persists on refresh
       const updatedUser = { ...initialUserInfo, ...formData };
@@ -61,7 +61,7 @@ function ProfileSetting() {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
         <Box>
-          <Typography variant="h5" fontWeight="bold" mb={1}>
+          <Typography variant="h5" fontWeight="bold" mb={1} color="text.primary">
             Profile Settings
           </Typography>
           <Typography color="text.secondary" mb={3}>
@@ -69,14 +69,19 @@ function ProfileSetting() {
           </Typography>
         </Box>
 
-        {/* 👇 NEW: Save Changes Button */}
+        {/* Save Changes Button */}
         <Button 
           variant="contained" 
           color="primary" 
           disabled={!isModified || isLoading} 
           onClick={handleSave}
           disableElevation
-          sx={{ borderRadius: 2, fontWeight: 600, textTransform: 'none', px: 3 }}
+          sx={{ 
+            borderRadius: 2, // Rounds the corners locally
+            fontWeight: 600, 
+            textTransform: 'none', // Prevents ALL-CAPS standard Material UI button styling
+            px: 3 
+          }}
         >
           {isLoading ? <CircularProgress size={24} color="inherit" /> : "Save Changes"}
         </Button>
@@ -93,7 +98,7 @@ function ProfileSetting() {
             {formData.username ? formData.username.charAt(0).toUpperCase() : "U"}
           </Avatar>
           <Box sx={{ ml: 2 }}>
-            <Typography variant="h6" fontWeight="bold">
+            <Typography variant="h6" fontWeight="bold" color="text.primary">
               {formData.username || "User"}
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -111,10 +116,10 @@ function ProfileSetting() {
             fullWidth
             size="small"
             variant="outlined"
-            name="username"          // <-- Added name
-            value={formData.username} // <-- Bound to local state
-            onChange={handleChange}  // <-- Bound to handler
-            sx={{ bgcolor: 'background.paper' }}
+            name="username"
+            value={formData.username}
+            onChange={handleChange}
+            sx={{ bgcolor: 'background.paper', borderRadius: 1 }}
           />
         </Box>
 
@@ -130,7 +135,7 @@ function ProfileSetting() {
             name="email"
             value={formData.email}
             onChange={handleChange}
-            sx={{ bgcolor: 'background.paper' }}
+            sx={{ bgcolor: 'background.paper', borderRadius: 1 }}
           />
         </Box>
         
@@ -146,7 +151,7 @@ function ProfileSetting() {
             name="mobileno"
             value={formData.mobileno}
             onChange={handleChange}
-            sx={{ bgcolor: 'background.paper' }}
+            sx={{ bgcolor: 'background.paper', borderRadius: 1 }}
           />
         </Box>
 
@@ -164,7 +169,7 @@ function ProfileSetting() {
           p: 2,
           bgcolor: 'background.paper'
         }}>
-          <Typography fontWeight="500">
+          <Typography fontWeight="500" color="text.primary">
             Dark Mode
           </Typography>
           <Switch 

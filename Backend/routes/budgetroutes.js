@@ -4,7 +4,8 @@ import {
   createBudget,
   updateBudget,
   deleteBudget,
-  fetchBudgetProgress
+  fetchBudgetProgress,
+  getBudgetDetails
 } from "../controllers/budgetController.js";
 
 import { verifyToken } from "../middlewares/authMiddleware.js";
@@ -12,7 +13,7 @@ import { verifyToken } from "../middlewares/authMiddleware.js";
 const router = express.Router();
 
 router.get("/progress/:userId", verifyToken, fetchBudgetProgress);
-
+router.get("/details/:budgetId", verifyToken, getBudgetDetails);
 router.get("/:userId", verifyToken, fetchBudget);
 
 router.post("/create", verifyToken, createBudget);
