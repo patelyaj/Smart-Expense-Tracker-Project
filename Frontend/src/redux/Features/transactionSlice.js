@@ -1,11 +1,11 @@
 import { createAsyncThunk ,createSlice} from "@reduxjs/toolkit";
-import axios from "axios";
+import api from "../../utils/axiosInstance";
 
 const fetchTransactions = createAsyncThunk(
     'transaction/fetchTransactions',
     async ({userId,startDate,endDate}, { rejectWithValue }) => {
         try {
-            const response = await axios.get(`http://localhost:5000/expensetracker/transactions/fetchtransactions/${userId}`,{params:{startDate,endDate}, withCredentials: true });
+            const response = await api.get(`/transactions/fetchtransactions/${userId}`, {params:{startDate,endDate}, withCredentials: true });
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to fetch transactions');
@@ -18,7 +18,7 @@ const addTransaction = createAsyncThunk(
     'transaction/addTransaction',
     async (transactionData, { rejectWithValue }) => { 
         try {
-            const response = await axios.post('http://localhost:5000/expensetracker/transactions/addtransaction', transactionData, { withCredentials: true });
+            const response = await api.post('/transactions/addtransaction', transactionData, { withCredentials: true });
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to add transaction');
@@ -31,7 +31,7 @@ const editTransaction = createAsyncThunk(
     'transaction/editTransaction', 
     async ({ transactionId, updatedData }, { rejectWithValue }) => {
         try {
-            const response = await axios.patch(`http://localhost:5000/expensetracker/transactions/edittransaction/${transactionId}`, updatedData, { withCredentials: true });
+            const response = await api.patch(`/transactions/edittransaction/${transactionId}`, updatedData, { withCredentials: true });
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to edit transaction');
@@ -44,7 +44,7 @@ const deleteTransaction = createAsyncThunk(
     'transaction/deleteTransaction',
     async (transactionId, { rejectWithValue }) => {
         try {
-            const response = await axios.delete(`http://localhost:5000/expensetracker/transactions/deletetransaction/${transactionId}`, { withCredentials: true });
+            const response = await api.delete(`/transactions/deletetransaction/${transactionId}`, { withCredentials: true });
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to delete transaction');
@@ -56,7 +56,7 @@ const fetchIncomeExpense = createAsyncThunk(
     'transaction/fetchIncomeExpense',
     async ({userId,startDate,endDate}, { rejectWithValue }) => {
         try {
-            const response = await axios.get(`http://localhost:5000/expensetracker/transactions/fetchincomeexpense/${userId}`,{params:{startDate,endDate}, withCredentials: true });
+            const response = await api.get(`/transactions/fetchincomeexpense/${userId}`, {params:{startDate,endDate}, withCredentials: true });
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to fetch income and expense summary');

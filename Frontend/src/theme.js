@@ -3,41 +3,27 @@ import { createTheme } from "@mui/material/styles";
 export const lightTheme = createTheme({
   palette: {
     mode: "light",
-    primary: {
-      main: "#1976d2", // Blue
+    primary: { main: "#1976d2" }, // Standard Blue
+    background: { default: "#f4f6f8", paper: "#ffffff" },
+    text: {
+      primary: "#121212",   // Deep Black (Standard)
+      secondary: "#666666", // Gray (Standard)
     },
-    background: {
-      default: "#f4f6f8", 
-      paper: "#ffffff",   
-    },
-    success: {
-      main: "#35cb3c", // Lighter, neon-ish green for dark mode visibility
-    },
-    error: {
-      main: "#f43333", // Lighter, softer red for dark mode visibility
-    }
+    success: { main: "#35de3d" },
+    error: { main: "#f43333" }
   },
 });
 
 export const darkTheme = createTheme({
   palette: {
     mode: "dark",
-    primary: {
-      main: "#90caf9", 
-    },
-    background: {
-      default: "#121212", 
-      paper: "#373636",   
-    },
+    primary: { main: "#90caf9" },
+    background: { default: "#121212", paper: "#1e1e1e" },
     text: {
-      primary: "#ffffff",   
-      secondary: "#a6c8e3", 
+      primary: "#ffffff",   // Pure White (Standard)
+      secondary: "#b0b0b0", // Light Gray (Standard)
     },
-    success: {
-      main: "#35de3d", // Lighter, neon-ish green for dark mode visibility
-    },
-    error: {
-      main: "#f43333", // Lighter, softer red for dark mode visibility
-    }
+    success: { main: "#35de3d" },
+    error: { main: "#f43333" }
   },
 });

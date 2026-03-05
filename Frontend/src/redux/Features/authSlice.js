@@ -1,13 +1,12 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
-
+import api from '../../utils/axiosInstance';
 const userFromStorage = localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo')) : null;
 
 export const loginUser = createAsyncThunk(
   'auth/login',
   async (userData, { rejectWithValue }) => {
     try {
-      const { data } = await axios.post('http://localhost:5000/expensetracker/users/login', userData,{withCredentials:true});  
+      const { data } = await api.post('/users/login', userData,{withCredentials:true});  
 
       console.log('login',data);
       localStorage.setItem('userInfo', JSON.stringify(data));
@@ -27,7 +26,7 @@ export const registerUser = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     try {
       console.log("thunk called");
-      const { data } = await axios.post('http://localhost:5000/expensetracker/users/signup', userData,{withCredentials:true});
+      const { data } = await api.post('/users/signup', userData,{withCredentials:true});
       console.log("regis",data);
       localStorage.setItem('userInfo', JSON.stringify(data));
 
@@ -45,7 +44,7 @@ export const logoutUser = createAsyncThunk(
   'auth/logout',
   async(_,{rejectWithValue})=>{
     try {
-      const {data} = await axios.post('http://localhost:5000/expensetracker/users/logout', {} , {withCredentials:true});
+      const {data} = await api.post('/users/logout', {} , {withCredentials:true});
       console.log('logout res',data.message);
       return data;
     } catch (error) {

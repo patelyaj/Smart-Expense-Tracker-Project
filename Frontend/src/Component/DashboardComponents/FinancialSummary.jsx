@@ -25,7 +25,7 @@ const FinancialSummary = () => {
 
   return (
     <Grid container spacing={3} sx={{ mb: 4 }}>
-      {/* 2. BALANCE (CENTER) */}
+      {/* 2. BALANCE */}
       <Grid item xs={12} md={5}>
         <Card sx={{ borderRadius: 3, border: (theme) => `1px solid ${theme.palette.divider}`, boxShadow: 'none', bgcolor: 'background.paper' }}>
           <CardContent sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -37,7 +37,7 @@ const FinancialSummary = () => {
               <Typography variant="body2" color="text.secondary" fontWeight={600}>
                 Current Balance
               </Typography>
-              <Typography variant="h5" fontWeight={700} color="text.primary">
+              <Typography variant="h5" fontWeight={700} color="primary.main">
                 ${balance?.toLocaleString()}
               </Typography>
             </Box>
@@ -56,7 +56,7 @@ const FinancialSummary = () => {
               <Typography variant="body2" color="text.secondary" fontWeight={600}>
                 Total Income
               </Typography>
-              <Typography variant="h5" fontWeight={700} color="text.primary">
+              <Typography variant="h5" fontWeight={700} color="success.main">
                 +${income?.toLocaleString()}
               </Typography>
             </Box>
@@ -76,7 +76,7 @@ const FinancialSummary = () => {
               <Typography variant="body2" color="text.secondary" fontWeight={600}>
                 Total Expense
               </Typography>
-              <Typography variant="h5" fontWeight={700} color="text.primary">
+              <Typography variant="h5" fontWeight={700} color="error.main">
                 -${expense?.toLocaleString()}
               </Typography>
             </Box>

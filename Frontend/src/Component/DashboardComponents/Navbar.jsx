@@ -58,7 +58,6 @@ function Navbar() {
       sx={{ 
         bgcolor: 'background.paper', 
         borderBottom: (theme) => `1px solid ${theme.palette.divider}`, 
-        color: 'text.primary',
         backgroundImage: 'none', 
         backdropFilter: 'blur(10px)',
         backgroundColor: (theme) => alpha(theme.palette.background.paper, 0.9),
@@ -66,6 +65,7 @@ function Navbar() {
     >
       <Container maxWidth="xl">
         <Toolbar disableGutters sx={{ minHeight: '70px' }}>
+          
           {/* Desktop Logo */}
           <Typography
             variant="h5"
@@ -76,9 +76,7 @@ function Navbar() {
               display: { xs: 'none', md: 'flex' },
               fontWeight: 800,
               letterSpacing: '.1rem',
-              background: (theme) => `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              color: 'text.primary', // FIXED: Replaced text.default
               textDecoration: 'none',
               width: '200px',
             }}
@@ -92,6 +90,7 @@ function Navbar() {
               size="large"
               onClick={handleOpenNavMenu}
               color="inherit"
+              sx={{ color: 'text.primary' }}
             >
               <MenuIcon />
             </IconButton>
@@ -144,7 +143,7 @@ function Navbar() {
               flexGrow: 1,
               fontWeight: 800,
               letterSpacing: '.1rem',
-              color: 'primary.main',
+              color: 'text.primary', // FIXED: Replaced primary.main
               textDecoration: 'none',
             }}
           >
@@ -164,35 +163,35 @@ function Navbar() {
               return (
                 <Button
                   key={page.label}
-                  disableRipple // Removes the default material ripple circle for a cleaner look
+                  disableRipple 
                   onClick={() => navigate(page.path)}
                   sx={{
                     my: 2,
-                    px: 1, // Reduced horizontal padding since we rely on the line now
+                    px: 1, 
                     py: 1,
-                    color: isActive ? 'primary.main' : 'text.primary',
+                    color: isActive ? 'primary.main' : 'text.primary', // FIXED: Replaced text.default
                     bgcolor: 'transparent',
                     textTransform: 'none',
                     fontWeight: isActive ? 700 : 600,
                     fontSize: '1rem',
-                    position: 'relative', // CRITICAL: Required for the absolute positioning of the bottom line
+                    position: 'relative', 
                     transition: 'color 0.2s ease-in-out',
                     
                     '&:hover': {
                       color: 'primary.main',
-                      bgcolor: 'transparent', // Keep background transparent on hover
+                      bgcolor: 'transparent', 
                     },
                     
                     /* The Animated Bottom Line */
                     '&::after': {
                       content: '""',
                       position: 'absolute',
-                      bottom: '0px', // Places the line at the very bottom of the button
+                      bottom: '0px', 
                       left: '50%',
                       transform: isActive ? 'translateX(-50%) scaleX(1)' : 'translateX(-50%) scaleX(0)',
-                      width: '80%', // Line takes up 80% of the button width
-                      height: '3px', // Thickness of the line
-                      borderRadius: '4px 4px 0 0', // Rounds the top corners of the line slightly
+                      width: '80%', 
+                      height: '3px', 
+                      borderRadius: '4px 4px 0 0', 
                       backgroundColor: 'primary.main',
                       transition: 'transform 0.3s ease-in-out, opacity 0.3s ease-in-out',
                       opacity: isActive ? 1 : 0,
@@ -202,7 +201,7 @@ function Navbar() {
                     /* Hover state for the bottom line */
                     '&:hover::after': {
                       transform: 'translateX(-50%) scaleX(1)',
-                      opacity: isActive ? 1 : 0.5, // Line shows up at 50% opacity when hovering on inactive pages
+                      opacity: isActive ? 1 : 0.5, 
                     }
                   }}
                 >

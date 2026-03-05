@@ -1,11 +1,11 @@
 import { createAsyncThunk,createSlice } from "@reduxjs/toolkit";
-import axios from "axios";
+import api from "../../utils/axiosInstance";
 
 export const fetchBalance = createAsyncThunk(
     'balance/fetchBalance',
     async (userId, {rejectWithValue}) => {
         try {
-            const respoonse = await axios.get(`http://localhost:5000/expensetracker/balance/fetchbalance/${userId}`,{withCredentials:true});
+            const respoonse = await api.get(`/balance/fetchbalance/${userId}`,{withCredentials:true});
             return respoonse.data;
         } catch (error) {
             return rejectWithValue(error.response.data);
