@@ -79,6 +79,8 @@ export default function DashboardDatePicker({
             value={tempStart}
             onChange={(newDate) => setTempStart(newDate)}
             format="DD/MM/YYYY"
+            disableFuture
+            maxDate={tempEnd}
           />
 
           <DatePicker
@@ -86,6 +88,8 @@ export default function DashboardDatePicker({
             value={tempEnd}
             onChange={(newDate) => setTempEnd(newDate)}
             format="DD/MM/YYYY"
+            disableFuture
+            minDate={tempStart}
           />
         </Stack>
 

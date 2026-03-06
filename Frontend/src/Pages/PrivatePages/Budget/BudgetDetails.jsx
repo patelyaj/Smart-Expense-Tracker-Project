@@ -62,7 +62,7 @@ function BudgetDetails() {
           <Paper sx={{ p: 3, flex: 1, bgcolor: "background.paper" }}>
             <Typography color="text.secondary">Originally Budgeted</Typography>
             <Typography variant="h5" color="text.primary">
-              ${limit}
+              &#8377;{limit}
             </Typography>
           </Paper>
 
@@ -70,7 +70,7 @@ function BudgetDetails() {
             <Typography color="text.secondary">Spent so far</Typography>
             {/* Uses theme.palette.error.main */}
             <Typography color="error.main" variant="h5">
-              ${budgetDetails.spent}
+              &#8377;{budgetDetails.spent}
             </Typography>
           </Paper>
 
@@ -78,14 +78,14 @@ function BudgetDetails() {
             <Typography color="text.secondary">Money left</Typography>
             {/* Uses theme.palette.success.main */}
             <Typography color="success.main" variant="h5">
-              ${budgetDetails.remaining}
+              &#8377;{budgetDetails.remaining}
             </Typography>
           </Paper>
 
           <Paper sx={{ p: 3, flex: 1, bgcolor: "background.paper" }}>
             <Typography color="text.secondary">You can spend</Typography>
             <Typography variant="h5" color="text.primary">
-              ${budgetDetails.dailyAllowed?.toFixed(2)}/day
+              &#8377;{budgetDetails.dailyAllowed?.toFixed(2)}/day
             </Typography>
           </Paper>
         </Stack>

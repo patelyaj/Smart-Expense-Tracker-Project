@@ -69,6 +69,7 @@ const Transaction = () => {
   }, [startDate, endDate, dispatch, userId]);
 
   // Apply frontend filters (category + search)
+  // debouncing needed
  const filteredTransactions = useMemo(() => {
   const query = searchQuery.toLowerCase();
 
@@ -145,6 +146,7 @@ const Transaction = () => {
             bgcolor: 'background.paper'
           }} 
         >
+
           {/* Search input */}
           <TextField
             placeholder="Search By Description..."
@@ -306,7 +308,7 @@ const Transaction = () => {
                         {/* Right side actions */}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                           <Typography variant="h6" fontWeight={800} color={isIncome ? 'success.main' : 'error.main'}>
-                            {isIncome ? "+" : "-"}${txn.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {isIncome ? "+" : "-"}&#8377;{txn.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </Typography>
                           
                           <Box sx={{ display: 'flex', gap: 0.5 }}>

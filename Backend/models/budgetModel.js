@@ -38,6 +38,8 @@ const budgetSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
+budgetSchema.index({ userId: 1, startDate: -1 });
+
 budgetSchema.index(
   { userId: 1, category: 1, period: 1, startDate: 1 },
   { unique: true, partialFilterExpression: { category: { $exists: true } } }

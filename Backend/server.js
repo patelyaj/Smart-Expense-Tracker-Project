@@ -3,20 +3,22 @@ import cors from 'cors';
 import { configDotenv } from 'dotenv';
 import connectDb from './config/configDb.js';
 import authRoutes from './routes/authRoutes.js';
-import balanceRouter from './routes/balanceRoutes.js';
 import transactionRouter from './routes/transactionRoutes.js';
 import categoryRouter from './routes/categoryRoutes.js';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-
 import budgetRouter from './routes/budgetroutes.js';
 // import 
+import { globalLimiter } from './middlewares/rateLimiter.js';
 
 configDotenv();
 connectDb();
 
 const app = express();
 app.use(express.json());
+
+app.set("trust proxy", 1);
+app.use(globalLimiter);
 
 app.use(cookieParser());
 
@@ -29,7 +31,6 @@ app.use(cors({
 }));
 
 app.use('/expensetracker/users',authRoutes);
-app.use('/expensetracker/balance/',balanceRouter);
 app.use('/expensetracker/transactions/',transactionRouter);
 app.use('/expensetracker/categories/',categoryRouter);
 app.use('/expensetracker/budget/',budgetRouter);

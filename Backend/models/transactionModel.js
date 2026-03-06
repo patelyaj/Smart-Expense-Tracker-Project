@@ -11,6 +11,16 @@ const transactionSchema = new mongoose.Schema({
   isDeleted: { type: Boolean, default: false }
 }, { timestamps: true });
 
-transactionSchema.index({ userId: 1, date: -1 }); // Performance index for reports
+transactionSchema.index({
+  userId: 1,
+  category: 1,
+  date: -1,
+  type: 1,
+  isDeleted: 1
+});
+transactionSchema.index({ userId: 1, date: -1 });
+transactionSchema.index({ userId: 1, type: 1 });
+transactionSchema.index({ userId: 1, category: 1 });
+transactionSchema.index({ userId: 1, isDeleted: 1 });
 
 export default mongoose.model("Transaction", transactionSchema);

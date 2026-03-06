@@ -6,4 +6,6 @@ const categorySchema = new mongoose.Schema({
     type: { type: String, enum: ['income', 'expense'], required: true },
 }, { timestamps: true });
 
+categorySchema.index({ userId: 1, name: 1 });
+
 export default mongoose.model("Category", categorySchema);

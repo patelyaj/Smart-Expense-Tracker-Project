@@ -5,7 +5,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, MenuItem, Autocomplete, Stack
 } from "@mui/material";
-
+import { DatePicker } from "@mui/x-date-pickers";
 // Import toast for notifications
 import { toast } from "react-toastify";
 
@@ -64,7 +64,8 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
         const amountNum = Number(formData.amount);
 
         if (formData.type === "income") {
-          toast.success(`Awesome! You just added $${amountNum} to your income!`);
+          toast.success(`Awesome! You just added \u20B9${amountNum} to your income!`);
+
         } else if (formData.type === "expense") {
           
           let budgetAlertFired = false;
@@ -134,7 +135,7 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
       toast.error("Failed to save transaction.");
     }
   };
-
+  
   return (
     <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
       <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
@@ -170,7 +171,7 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
               value={formData.amount}
               onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
               fullWidth required
-              InputProps={{ startAdornment: <span style={{ marginRight: 8 }}>$</span> }}
+              InputProps={{ startAdornment: <span style={{ marginRight: 8 }}>&#8377;</span> }}
             />
 
             {/* The dropdown now feeds off the database! */}
@@ -186,13 +187,22 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
               )}
             />
 
-            <TextField
-              type="date"
+            <DatePicker
               label="Date"
-              InputLabelProps={{ shrink: true }}
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              fullWidth required
+              value={dayjs(formData.date)}
+              onChange={(newDate) =>
+                setFormData({
+                  ...formData,
+                  date: newDate.format("YYYY-MM-DD"),
+                })
+              }
+              disableFuture
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  required: true,
+                },
+              }}
             />
 
             <TextField

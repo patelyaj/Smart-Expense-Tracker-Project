@@ -10,9 +10,11 @@ export const fetchBudget = async (req, res) => {
 
     const { userId } = req.params;
 
+    // lean
     const budgets = await budgetModel
       .find({ userId })
-      .populate("category", "name");
+      .populate("category", "name")
+      .lean();
 
     res.status(200).json(budgets);
 
@@ -35,7 +37,7 @@ export const createBudget = async (req, res) => {
 
     // Look up category ObjectId if a specific category was provided (not "overall")
     if (category && category !== "overall") {
-       let categoryDoc = await categoryModel.findOne({ name: category, userId });
+       let categoryDoc = await categoryModel.findOne({ name: category, userId }).lean();
        
        // If category doesn't exist, you might want to create it, 
        // or reject the request. We'll create it to be safe.
@@ -133,7 +135,8 @@ export const fetchBudgetProgress = async (req, res) => {
 
     const budgets = await budgetModel
       .find({ userId })
-      .populate("category", "name");
+      .populate("category", "name")
+      .lean();
 
     const result = [];
 
@@ -164,7 +167,7 @@ export const fetchBudgetProgress = async (req, res) => {
       ]);
 
       result.push({
-        ...budget.toObject(),
+        ...budget,
         spent: spent[0]?.total || 0
       });
 
@@ -177,13 +180,12 @@ export const fetchBudgetProgress = async (req, res) => {
     res.status(500).json({ error: error.message });
 
   }
-
 };
 export const getBudgetDetails = async (req, res) => {
   try {
     const { budgetId } = req.params;
 
-    const budget = await budgetModel.findById(budgetId).populate("category");
+    const budget = await budgetModel.findById(budgetId).populate("category").lean();
 
     if (!budget) {
       return res.status(404).json({ message: "Budget not found" });

@@ -140,7 +140,7 @@ function AnalyticsSection() {
                 </Pie>
 
                 <Tooltip
-                  formatter={(value) => `$${value.toLocaleString()}`}
+                  formatter={(value) =>   `\u20B9${value.toLocaleString()}`}
                   // Theme-aware tooltip styling
                   contentStyle={{ 
                     backgroundColor: theme.palette.background.paper,
@@ -202,12 +202,12 @@ function AnalyticsSection() {
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(value) => `$${value}`}
+                    tickFormatter={(value) => `\u20B9${value}`}
                     tick={{ fill: theme.palette.text.secondary }} // Theme-aware axis text
                   />
 
                   <Tooltip
-                    formatter={(value) => `$${value.toLocaleString()}`}
+                    formatter={(value) => `\u20B9${value.toLocaleString()}`}
                     // Theme-aware tooltip styling
                     contentStyle={{ 
                       backgroundColor: theme.palette.background.paper,

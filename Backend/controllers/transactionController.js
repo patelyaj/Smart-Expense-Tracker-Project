@@ -36,7 +36,8 @@ export const addTransaction = async (req, res) => {
             return res.status(400).json({message:"Missing required fields"});
         }
 
-        let categoryDoc = await categoryModel.findOne({ name: category, userId });
+        // category lean
+        let categoryDoc = await categoryModel.findOne({ name: category, userId }).lean();
         if (!categoryDoc) {
             categoryDoc = await categoryModel.create({ name: category, type, userId });
         }
@@ -71,16 +72,18 @@ export const editTransaction = async (req, res) => {
         console.log("===================transactionId when editing trasnsaction --- ",transactionId);
         const {amount, type, category, date, description, title} = req.body;
 
-        let categoryDoc = await categoryModel.findOne({ name: category, userId: req.user.userId });
+        // category lean
+        let categoryDoc = await categoryModel.findOne({ name: category, userId: req.user.userId }).lean();
         if (!categoryDoc) {
             categoryDoc = await categoryModel.create({ name: category, type, userId: req.user.userId });
         }
 
         console.log("categoryDoc when editing trasnsaction . ihace to see id it returns",categoryDoc);
 
+        // lean
         const edited = await transactionModel.findByIdAndUpdate(transactionId, {
             amount, type, category: categoryDoc._id, date, description ,title
-        }, {new: true}).populate('category', 'name type');
+        }, {new: true}).populate('category', 'name type').lean();
 
         if(!edited) return res.status(404).json({message:"Transaction not found"});
 
@@ -98,11 +101,12 @@ export const deleteTransaction = async (req, res) => {
   try {
     const  transactionId  = req.params.id;
 
+    // lean
     const deleted = await transactionModel.findByIdAndUpdate(
       transactionId,
       { isDeleted: true },
       { new: true }
-    );
+    ).lean();
 
     if (!deleted) {
       return res.status(404).json({ message: "Transaction not found" });

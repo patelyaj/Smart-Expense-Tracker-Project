@@ -82,7 +82,7 @@ const FinancialSummary = () => {
               </Typography>
 
               <Typography variant="h2" fontWeight={700} color="primary.main">
-                ${netBalance?.toLocaleString()}
+                &#8377;{netBalance?.toLocaleString()}
               </Typography>
             </Box>
           </CardContent>
@@ -120,7 +120,7 @@ const FinancialSummary = () => {
               </Typography>
 
               <Typography variant="h4" fontWeight={700} color="success.main">
-                +${income?.toLocaleString()}
+                +&#8377;{income?.toLocaleString()}
               </Typography>
             </Box>
           </CardContent>
@@ -158,7 +158,7 @@ const FinancialSummary = () => {
               </Typography>
 
               <Typography variant="h4" fontWeight={700} color="error.main">
-                -${expense?.toLocaleString()}
+                -&#8377;{expense?.toLocaleString()}
               </Typography>
             </Box>
           </CardContent>

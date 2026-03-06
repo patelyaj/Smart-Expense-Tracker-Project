@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Navbar from "../../../Component/DashboardComponents/Navbar";
 import {
   Box, Container, Typography, Paper, TextField, MenuItem, Button, Stack,
-  Grid, LinearProgress, Chip
+  LinearProgress, Chip
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { useDispatch, useSelector } from "react-redux";
@@ -148,8 +148,17 @@ function Budget() {
         </Paper>
 
         {/* BUDGET LIST CARDS */}
-        {/* Added alignItems="stretch" to ensure equal height rows */}
-        <Grid container spacing={4} alignItems="stretch">
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, 1fr)",
+              md: "repeat(3, 1fr)"
+            },
+            gap: 4
+          }}
+        >
           {progressBudgets.map((budget) => {
             const spent = budget.spent || 0;
             const limit = budget.limit || 0;
@@ -159,90 +168,89 @@ function Budget() {
             const isOver = remaining < 0;
 
             return (
-              <Grid item xs={12} sm={6} md={4} key={budget._id}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                      height: "100%", // Force card to take full height of the grid cell
-                      display: "flex", 
-                      flexDirection: "column", // Stack children vertically
-                      p: 3.5, // Increased padding slightly for breathing room
-                      borderRadius: 3, 
-                      border: "1px solid", 
-                      borderColor: "divider",
-                      bgcolor: "background.paper",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease-in-out",
-                      "&:hover": {
-                          borderColor: "primary.main",
-                          boxShadow: (theme) => `0 6px 24px ${alpha(theme.palette.primary.main, 0.12)}`,
-                          transform: "translateY(-4px)"
-                      }
-                  }}
-                  onClick={() => navigate(`/budget/${budget._id}`)}
-                >
-                  {/* Card Header */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-                    <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ lineHeight: 1.2 }}>
-                      {budget.category?.name || "Overall Budget"}
-                    </Typography>
-                    <Chip 
-                      label={budget.period} 
-                      size="small" 
-                      sx={{ 
-                        textTransform: 'capitalize', 
-                        fontWeight: 600, 
-                        fontSize: '0.7rem',
-                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
-                        color: 'primary.main'
-                      }} 
-                    />
-                  </Box>
-                  
-                  {/* Amount Info */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 1.5 }}>
-                    <Typography variant="h5" fontWeight={800} color="text.primary">
-                      ₹{spent.toLocaleString()}
-                    </Typography>
-                    <Typography variant="body2" fontWeight={600} color="text.secondary">
-                      of ₹{limit.toLocaleString()}
-                    </Typography>
-                  </Box>
+              <Paper
+                key={budget._id}
+                elevation={0}
+                sx={{
+                    height: "100%",
+                    display: "flex", 
+                    flexDirection: "column",
+                    p: 3.5,
+                    borderRadius: 3, 
+                    border: "1px solid", 
+                    borderColor: "divider",
+                    bgcolor: "background.paper",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease-in-out",
+                    "&:hover": {
+                        borderColor: "primary.main",
+                        boxShadow: (theme) => `0 6px 24px ${alpha(theme.palette.primary.main, 0.12)}`,
+                        transform: "translateY(-4px)"
+                    }
+                }}
+                onClick={() => navigate(`/budget/${budget._id}`)}
+              >
+                {/* Card Header */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+                  <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ lineHeight: 1.2 }}>
+                    {budget.category?.name || "Overall Budget"}
+                  </Typography>
+                  <Chip 
+                    label={budget.period} 
+                    size="small" 
+                    sx={{ 
+                      textTransform: 'capitalize', 
+                      fontWeight: 600, 
+                      fontSize: '0.7rem',
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                      color: 'primary.main'
+                    }} 
+                  />
+                </Box>
+                
+                {/* Amount Info */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 1.5 }}>
+                  <Typography variant="h5" fontWeight={800} color="text.primary">
+                    &#8377;{spent.toLocaleString()}
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.secondary">
+                    of &#8377;{limit.toLocaleString()}
+                  </Typography>
+                </Box>
 
-                  {/* Progress Bar Container - pushed to the bottom using mt: 'auto' */}
-                  <Box sx={{ mt: 'auto' }}>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={visualPercentage} 
-                      color={getProgressColor(rawPercentage)}
-                      sx={{ 
-                        height: 8, 
-                        borderRadius: 4, 
-                        mb: 1.5,
-                        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'
-                      }} 
-                    />
+                {/* Progress Bar Container */}
+                <Box sx={{ mt: 'auto' }}>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={visualPercentage} 
+                    color={getProgressColor(rawPercentage)}
+                    sx={{ 
+                      height: 8, 
+                      borderRadius: 4, 
+                      mb: 1.5,
+                      bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'
+                    }} 
+                  />
 
-                    {/* Footer Stats */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="caption" fontWeight={600} color="text.secondary">
-                        {rawPercentage.toFixed(0)}% Spent
-                      </Typography>
-                      <Typography 
-                        variant="caption" 
-                        fontWeight={700} 
-                        color={isOver ? "error.main" : "success.main"}
-                      >
-                        {isOver ? `₹${Math.abs(remaining).toLocaleString()} Over Limit` : `₹${remaining.toLocaleString()} Left`}
-                      </Typography>
-                    </Box>
+                  {/* Footer Stats */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="caption" fontWeight={600} color="text.secondary">
+                      {rawPercentage.toFixed(0)}% Spent
+                    </Typography>
+                    <Typography 
+                      variant="caption" 
+                      fontWeight={700} 
+                      color={isOver ? "error.main" : "success.main"}
+                    >
+                      &#8377;{isOver ? `${Math.abs(remaining).toLocaleString()} Over Limit` : `${remaining.toLocaleString()} Left`}
+                    </Typography>
                   </Box>
+                </Box>
 
-                </Paper>
-              </Grid>
+              </Paper>
             );
           })}
-        </Grid>
+        </Box>
 
       </Container>
     </Box>

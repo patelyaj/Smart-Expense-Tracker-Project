@@ -1,5 +1,4 @@
 import User from '../models/userModel.js';
-import Balance from '../models/balanceModel.js';
 import Category from '../models/categoryModel.js';
 import bcrypt from 'bcrypt';
 import generateTokenAndSetCookie from '../utils/generateToken.js';
@@ -35,7 +34,7 @@ export const registerUser = async (req, res) => {
     
         // Check if user already exists
         // console.log(req.body);
-         const existingUser = await User.findOne({ email });
+         const existingUser = await User.findOne({ email }).lean();
         if (existingUser) {
             return res.status(400).json({ error: "User already exists" });
         }
@@ -55,11 +54,11 @@ export const registerUser = async (req, res) => {
         if(newUser){
             await newUser.save();
             
-            // Create initial balance for the new user
-            await Balance.create({
-                userId: newUser._id,
-                totalBalance: 0
-            });
+            // // Create initial balance for the new user
+            // await Balance.create({
+            //     userId: newUser._id,
+            //     totalBalance: 0
+            // });
 
             // Create default categories for the new user
             // const defaultCategories = [
@@ -130,7 +129,7 @@ export const loginUser = async (req, res) => {
         }
     
         // Check if user exists in database
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }).lean();
     
         const isPasswordCorrect = await bcrypt.compare(password, user?.password || "");
     
