@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import dayjs from "dayjs";
 import { 
   Container, Box, Typography, Button, IconButton, Paper, 
-  Avatar, Stack, Chip, Divider, MenuItem, TextField, Popover, InputAdornment
+  Avatar, Stack, Chip, Divider, MenuItem, TextField, Popover, InputAdornment, Pagination // ADDED Pagination import
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { DatePicker } from "@mui/x-date-pickers";
@@ -28,17 +28,24 @@ import { fetchBudgetProgress } from "../../../redux/Features/budgetSlice";
 import DashboardDatePicker from "../../../Component/DashboardDatePicker";
 
 import { Dialog, DialogTitle, DialogContent } from "@mui/material";
+import api from "../../../utils/axiosInstance";
+
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
 const Transaction = () => {
   const dispatch = useDispatch();
   const userId = JSON.parse(localStorage.getItem("userInfo"))?._id;
   
-  const { transactions, status } = useSelector((state) => state.transaction);
+  // ADDED: Pull totalPages from the redux store
+  const { transactions, status, totalPages } = useSelector((state) => state.transaction);
   const { categories } = useSelector((state) => state.category); 
 
   // Main date state that actually triggers API calls
   const [startDate, setStartDate] = useState(dayjs().startOf("month").toISOString());
   const [endDate, setEndDate] = useState(dayjs().endOf("month").toISOString());
+
+  // ADDED: Page state for pagination
+  const [page, setPage] = useState(1);
 
   // Modal state for Add / Edit
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -60,13 +67,14 @@ const Transaction = () => {
   // Whenever final date changes → refetch transactions + categories
   useEffect(() => {
     if (userId && startDate && endDate) {
-      dispatch(fetchTransactions({ userId, startDate, endDate }));
+      // ADDED: Passed page and limit to fetchTransactions
+      dispatch(fetchTransactions({ userId, startDate, endDate, page, limit: 10 }));
       dispatch(fetchCategories()); 
       // Fetch income, expense, and budgets so the modal has data for smart alerts
       dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
       dispatch(fetchBudgetProgress(userId));
     }
-  }, [startDate, endDate, dispatch, userId]);
+  }, [startDate, endDate, page, dispatch, userId]); // ADDED: page as dependency
 
   // Apply frontend filters (category + search)
   // debouncing needed
@@ -106,13 +114,43 @@ const Transaction = () => {
   const handleDelete = async (txnId) => {
     if (window.confirm("Are you sure you want to delete this transaction?")) {
       await dispatch(deleteTransaction(txnId)).unwrap();
-      dispatch(fetchTransactions({ userId, startDate, endDate }));
+      // ADDED: Refetch keeping current pagination info
+      dispatch(fetchTransactions({ userId, startDate, endDate, page, limit: 10 }));
       dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
       // Refresh budget progress after deletion
       dispatch(fetchBudgetProgress(userId));
     }
   };
 
+
+  // csv functionality
+  const handleExportCsv = async () => {
+    try {
+      // Fetch the CSV as a Blob
+      const response = await api.get(`/transactions/exportcsv/${userId}`, {
+        params: { startDate, endDate },
+        responseType: 'blob', // CRITICAL: Tells Axios to expect binary data, not JSON
+        withCredentials: true
+      });
+
+      // Create a temporary URL for the Blob
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      
+      // Create a hidden <a> tag and click it to trigger the download
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Transactions_${dayjs(startDate).format('MMM_YYYY')}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading CSV", error);
+      alert("Failed to export CSV. Please try again.");
+    }
+  };
 
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', pb: 10 }}>
@@ -125,6 +163,17 @@ const Transaction = () => {
           <Typography variant="h4" fontWeight={800} color="text.primary">
             Transactions
           </Typography>
+
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button 
+              variant="outlined" 
+              startIcon={<FileDownloadIcon />} 
+              onClick={handleExportCsv}
+              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, px: 3 }}
+            >
+              Export CSV
+            </Button>
+
           <Button 
             variant="contained" 
             startIcon={<AddIcon />} 
@@ -134,6 +183,7 @@ const Transaction = () => {
           >
             Add Transaction
           </Button>
+          </Box>
         </Box>
 
         {/* Filters */}
@@ -210,6 +260,7 @@ const Transaction = () => {
                 // Update Local state ONLY when Apply is clicked!
                 setStartDate(newStart);
                 setEndDate(newEnd);
+                setPage(1); // ADDED: Reset back to page 1 whenever date range filter is changed
               }}
               onClose={() => setAnchorEl(null)} 
             />
@@ -329,6 +380,19 @@ const Transaction = () => {
             </Box>
           ))}
         </Stack>
+
+        {/* ADDED: Pagination Component rendered below transactions list */}
+        {totalPages > 1 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+            <Pagination 
+              count={totalPages} 
+              page={page} 
+              onChange={(e, value) => setPage(value)} 
+              color="primary" 
+              size="large"
+            />
+          </Box>
+        )}
 
       </Container>
 

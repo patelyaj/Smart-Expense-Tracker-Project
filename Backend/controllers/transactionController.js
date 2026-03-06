@@ -2,11 +2,12 @@ import transactionModel from "../models/transactionModel.js";
 import mongoose from "mongoose";
 import categoryModel from "../models/categoryModel.js";
 
-export const fetchTransactions = async (req, res) => {
-    console.log("fetch transactions api called",req.params);
+export const exportTransactionsCsv = async (req, res) => {
+    console.log("export transactions csv api called", req.params);
     try {
         const userId = req.params.id;
-        const { startDate, endDate } = req.query; 
+        const { startDate, endDate } = req.query;
+
         
         let query = { userId, isDeleted: false };
         if (startDate && endDate) {
@@ -17,11 +18,72 @@ export const fetchTransactions = async (req, res) => {
             .find(query)
             .populate('category', 'name type')
             .sort({ date: -1 })
+            .lean();
+
+        // Define CSV Headers
+        const csvHeaders = ['Date', 'Title', 'Amount', 'Type', 'Category', 'Description'];
+
+        // Map transactions to CSV rows
+        const csvRows = transactions.map(txn => {
+            const date = new Date(txn.date).toLocaleDateString('en-GB'); // Format: DD/MM/YYYY
+            
+            // Wrap text fields in quotes to prevent commas inside the text from breaking the CSV columns
+            const title = `"${(txn.title || '').replace(/"/g, '""')}"`;
+            const amount = txn.amount;
+            const type = txn.type;
+            const category = `"${(txn.category?.name || 'Uncategorized').replace(/"/g, '""')}"`;
+            const description = `"${(txn.description || '').replace(/"/g, '""')}"`;
+
+            return [date, title, amount, type, category, description].join(',');
+        });
+
+        // Combine headers and rows
+        const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
+
+        console.log(`Exported ${transactions.length} transactions to CSV.`);
+
+        // Send as a downloadable file
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
+        res.status(200).send(csvContent);
+
+    } catch (err) {
+        console.error("Error exporting CSV:", err);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export const fetchTransactions = async (req, res) => {
+    console.log("fetch transactions api called",req.params);
+    try {
+        const userId = req.params.id;
+        // ADDED: Extract page and limit for pagination (defaults to page 1, limit 10)
+        const { startDate, endDate, page = 1, limit = 10 } = req.query; 
+        
+        let query = { userId, isDeleted: false };
+        if (startDate && endDate) {
+            query.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
+        }
+
+        // ADDED: Calculate skip value for pagination
+        const skip = (Number(page) - 1) * Number(limit);
+        
+        // ADDED: Get total document count to calculate total pages
+        const totalTransactions = await transactionModel.countDocuments(query);
+        const totalPages = Math.ceil(totalTransactions / Number(limit));
+
+        const transactions = await transactionModel
+            .find(query)
+            .populate('category', 'name type')
+            .sort({ date: -1 })
+            .skip(skip) // ADDED: Skip records of previous pages
+            .limit(Number(limit)) // ADDED: Limit to 10 records
             .lean(); 
 
             console.log("Transactions fetched from DB finished ", transactions);
 
-        res.status(200).json(transactions);
+        // CHANGED: Return an object with transactions and pagination metadata
+        res.status(200).json({ transactions, totalPages, currentPage: Number(page) });
     } catch(err){
         res.status(500).json({message:"Internal server error"});
     }

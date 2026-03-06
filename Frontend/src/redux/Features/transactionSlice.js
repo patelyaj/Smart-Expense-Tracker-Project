@@ -15,9 +15,11 @@ const fetchExpenseByCategory = createAsyncThunk(
 
 const fetchTransactions = createAsyncThunk(
     'transaction/fetchTransactions',
-    async ({userId,startDate,endDate}, { rejectWithValue }) => {
+    // ADDED: Accept page and limit, default to 1 and 10
+    async ({userId,startDate,endDate, page = 1, limit = 10}, { rejectWithValue }) => {
         try {
-            const response = await api.get(`/transactions/fetchtransactions/${userId}`, {params:{startDate,endDate}, withCredentials: true });
+            // ADDED: pass page and limit in params
+            const response = await api.get(`/transactions/fetchtransactions/${userId}`, {params:{startDate,endDate, page, limit}, withCredentials: true });
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to fetch transactions');
@@ -84,7 +86,9 @@ const transactionSlice = createSlice({
         income : 0,
         expense: 0,
         netBalance : 0,
-        expenseChartData: []
+        expenseChartData: [],
+        totalPages: 1, 
+        currentPage: 1 
     },
     reducers: {  },
     extraReducers: (builder) => {
@@ -94,8 +98,10 @@ const transactionSlice = createSlice({
         })
         .addCase(fetchTransactions.fulfilled, (state, action) => {
             state.status = 'succeeded';
-            // Assuming your backend returns an array of transactions
-            state.transactions = action.payload; 
+            // Assuming your backend returns an array of transactions -> now returns an object with pagination
+            state.transactions = action.payload.transactions; 
+            state.totalPages = action.payload.totalPages; // ADDED
+            state.currentPage = action.payload.currentPage; // ADDED
             console.log("Transactions fetched successfully", state.transactions);
         })
         .addCase(fetchTransactions.rejected, (state, action) => {
