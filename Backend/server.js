@@ -7,8 +7,7 @@ import transactionRouter from './routes/transactionRoutes.js';
 import categoryRouter from './routes/categoryRoutes.js';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import budgetRouter from './routes/budgetroutes.js';
-// import 
+import budgetRouter from './routes/budgetroutes.js'; 
 import { globalLimiter } from './middlewares/rateLimiter.js';
 
 configDotenv();
@@ -26,7 +25,7 @@ app.use(helmet());
 
 // other site allowing
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: ['http://localhost:5173',process.env.FRONTEND_URL],
     credentials: true
 }));
 
@@ -43,6 +42,12 @@ app.get('/checkbackend',(req,res)=>{
     }
 });
 
-app.listen(process.env.PORT,()=>{
-    console.log(`runnning on http://localhost:${process.env.PORT}`);
-});
+// Only listen on a port if you are running it locally
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(process.env.PORT || 5000, () => {
+        console.log(`running on http://localhost:${process.env.PORT || 5000}`);
+    });
+}
+
+// THIS IS REQUIRED FOR VERCEL
+export default app;

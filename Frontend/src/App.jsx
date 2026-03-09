@@ -40,11 +40,11 @@ function App() {
             <Route path="/login" element={<Login/>} />
             <Route path="/signup" element={<Signup/>} /> 
           </Route>
+
           <Route element={<PrivateRoute/>} >
             <Route path="/dashboard" element={<Dashboard/>} />
             <Route path='/transactions' element={<Transaction/>} />
             <Route path='/profile/:id' element={<Profile/>} />
-            
             <Route path='/budget' element={<Budget/>} />
             <Route path="/budget/:budgetId" element={<BudgetDetails />} />
           </Route>
@@ -54,4 +54,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;

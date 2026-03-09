@@ -181,6 +181,7 @@ export const fetchBudgetProgress = async (req, res) => {
 
   }
 };
+
 export const getBudgetDetails = async (req, res) => {
   try {
     const { budgetId } = req.params;

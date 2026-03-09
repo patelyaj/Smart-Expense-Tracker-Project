@@ -26,7 +26,7 @@ export const verifyToken = async(req,res,next)=>{
 
     console.log("Token verified:", decode);
 
-    // ✅ Continue to controller
+    // Continue to controller
     next();
 
     // next()

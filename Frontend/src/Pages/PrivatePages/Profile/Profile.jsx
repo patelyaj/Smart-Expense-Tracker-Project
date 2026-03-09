@@ -38,6 +38,7 @@ function Profile() {
     try {
       setIsLoading(true);
       const response = await api.post(`/users/updateProfile/${initialUserInfo._id}`, formData);
+      console.log("update profile ,",response);
       const updatedUser = { ...initialUserInfo, ...formData };
       localStorage.setItem('userInfo', JSON.stringify(updatedUser));
       toast.success("Profile updated successfully!");
