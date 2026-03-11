@@ -23,10 +23,21 @@ app.use(cookieParser());
 
 app.use(helmet());
 
+
 // other site allowing
+const allowedOrigins = [
+  'http://localhost:5173',
+  process.env.FRONTEND_URL
+];
 app.use(cors({
-    origin: ['http://localhost:5173',process.env.FRONTEND_URL],
-    credentials: true
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS not allowed"));
+    }
+  },
+  credentials: true
 }));
 
 app.use('/expensetracker/users',authRoutes);
@@ -42,15 +53,6 @@ app.get('/checkbackend',(req,res)=>{
     }
 });
 
-// Only listen on a port if you are running it locally
-if (process.env.NODE_ENV !== 'production') {
-    app.listen(process.env.PORT || 5000, () => {
-        console.log(`running on http://localhost:${process.env.PORT || 5000}`);
-    });
-}
-
-// THIS IS REQUIRED FOR VERCEL
-export default app;
-
-
-//meaningless comment
+app.listen(process.env.PORT || 5000, () => {
+    console.log(`running on http://localhost:${process.env.PORT || 5000}`);
+});

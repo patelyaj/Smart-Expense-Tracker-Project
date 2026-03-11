@@ -1,5 +1,3 @@
-// validations/user.validation.js
-
 import { z } from "zod";
 
 export const userValidationSchema = z.object({

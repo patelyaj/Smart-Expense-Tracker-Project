@@ -2,7 +2,7 @@ import User from '../models/userModel.js';
 import Category from '../models/categoryModel.js';
 import bcrypt from 'bcrypt';
 import generateTokenAndSetCookie from '../utils/generateToken.js';
-import { userValidationSchema } from '../validators/uservalidation.js';
+import { userValidationSchema } from '../validators/userValidation.js';
 import { defaultCategoriesList } from '../utils/defaultCategories.js';
 // post registe user
 export const registerUser = async (req, res) => {
