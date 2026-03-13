@@ -18,25 +18,25 @@ app.use(globalLimiter);
 
 app.use(cookieParser());
 
-app.use(helmet());
 
 
-// other site allowing
+
 const allowedOrigins = [
-  'http://localhost:5173',
+  "http://localhost:5173",
   process.env.FRONTEND_URL
 ];
 
-app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("CORS not allowed"));
-    }
-  },
-  credentials: true
-}));
+const corsOptions = {
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"]
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // VERY IMPORTANT
+
+app.use(helmet());
 
 app.use('/api',routes);
 
