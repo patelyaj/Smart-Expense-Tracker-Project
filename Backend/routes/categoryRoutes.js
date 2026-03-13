@@ -1,4 +1,4 @@
-import { fetchCategories } from "../controllers/categoryController.js";
+import { fetchCategories } from "../controller/categoryController.js";
 import express, { Router } from "express";
 import { verifyToken } from "../middlewares/authMiddleware.js";
 import e from "express";

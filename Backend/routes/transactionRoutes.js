@@ -1,7 +1,6 @@
 import express from "express";
-import { addTransaction, deleteTransaction, editTransaction, exportTransactionsCsv, fetchIncomeExpense, fetchTransactions } from "../controllers/transactionController.js";
+import { addTransaction, deleteTransaction, editTransaction, exportTransactionsCsv, fetchIncomeExpense, fetchTransactions , fetchExpenseByCategory } from "../controller/transactionController.js";
 import { verifyToken } from "../middlewares/authMiddleware.js";
-import { fetchExpenseByCategory } from "../controllers/transactionController.js";
 
 const router = express.Router();
 router.get('/exportcsv/:id', verifyToken,exportTransactionsCsv);

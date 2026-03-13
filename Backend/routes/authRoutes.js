@@ -1,7 +1,8 @@
 import express from "express";
-import { logoutUser, registerUser, updateProfile, loginUser } from "../controllers/authController.js";
+import { logoutUser, registerUser, updateProfile, loginUser } from "../controller/authController.js";
 import { verifyToken } from "../middlewares/authMiddleware.js";
 import { authLimiter } from "../middlewares/rateLimiter.js";
+
 const router = express.Router();
 
 router.post("/signup", authLimiter, registerUser);

@@ -1,6 +1,6 @@
-import transactionModel from "../models/transactionModel.js";
+import transactionModel from "../model/transactionModel.js";
 import mongoose from "mongoose";
-import categoryModel from "../models/categoryModel.js";
+import categoryModel from "../model/categoryModel.js";
 
 export const exportTransactionsCsv = async (req, res) => {
     console.log("export transactions csv api called", req.params);

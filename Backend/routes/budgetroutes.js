@@ -6,7 +6,7 @@ import {
   deleteBudget,
   fetchBudgetProgress,
   getBudgetDetails
-} from "../controllers/budgetController.js";
+} from "../controller/budgetController.js";
 
 import { verifyToken } from "../middlewares/authMiddleware.js";
 

@@ -1,5 +1,5 @@
-import User from '../models/userModel.js';
-import Category from '../models/categoryModel.js';
+import User from '../model/userModel.js';
+import Category from '../model/categoryModel.js';
 import bcrypt from 'bcrypt';
 import generateTokenAndSetCookie from '../utils/tokenUtils.js';
 import { userValidationSchema } from '../validators/userValidation.js';

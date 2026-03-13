@@ -1,7 +1,7 @@
-import budgetModel from "../models/budgetModel.js";
-import transactionModel from "../models/transactionModel.js";
+import budgetModel from "../model/budgetModel.js";
+import transactionModel from "../model/transactionModel.js";
 // Add this import at the top of the file if it's not there
-import categoryModel from "../models/categoryModel.js";
+import categoryModel from "../model/categoryModel.js";
 
 // Fetch all budgets
 export const fetchBudget = async (req, res) => {
