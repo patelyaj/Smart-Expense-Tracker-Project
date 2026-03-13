@@ -34,7 +34,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // VERY IMPORTANT
 
 app.use(helmet());
 
