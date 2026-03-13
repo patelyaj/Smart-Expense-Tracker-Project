@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/expensetracker';
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: BACKEND_URL, 
@@ -12,7 +12,7 @@ api.interceptors.response.use(
   (response) => {
     // If the request is successful (200 OK), just return the data
     return response;
-  },
+  },  
   (error) => {
     // If the server returns 401 (Unauthorized), it means the cookie is expired or missing
     if (error.response && error.response.status === 401) {

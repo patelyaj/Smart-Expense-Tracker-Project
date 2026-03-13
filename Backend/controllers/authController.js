@@ -1,13 +1,13 @@
 import User from '../models/userModel.js';
 import Category from '../models/categoryModel.js';
 import bcrypt from 'bcrypt';
-import generateTokenAndSetCookie from '../utils/generateToken.js';
+import generateTokenAndSetCookie from '../utils/tokenUtils.js';
 import { userValidationSchema } from '../validators/userValidation.js';
 import { defaultCategoriesList } from '../utils/defaultCategories.js';
 // post registe user
 export const registerUser = async (req, res) => {
 
-    console.log("req reached api called",req.body);
+    console.log("req reached api called", req.body);
     // Validate user input
 
     // Show loading state
@@ -18,42 +18,42 @@ export const registerUser = async (req, res) => {
         const parsedData = userValidationSchema.safeParse(req.body);
 
         if (!parsedData.success) {
-        return res.status(400).json({
-            errors: parsedData.error.errors.map((err) => err.message),
-        });
+            return res.status(400).json({
+                errors: parsedData.error.errors.map((err) => err.message),
+            });
         }
-    
-        const { username,  mobileno,email, password } = req.body;
+
+        const { username, mobileno, email, password } = req.body;
         console.log(username);
 
-            // Validation
+        // Validation
         if (!username || !email || !password || !mobileno) {
             console.log("one field not found");
             return res.status(400).json({ error: "Please fill in all fields" });
         }
-    
+
         // Check if user already exists
         // console.log(req.body);
-         const existingUser = await User.findOne({ email }).lean();
+        const existingUser = await User.findOne({ email }).lean();
         if (existingUser) {
             return res.status(400).json({ error: "User already exists" });
         }
         // Hash the password
         const salt = await bcrypt.genSalt(10);
-        const hashPassword = await bcrypt.hash(password,salt);
+        const hashPassword = await bcrypt.hash(password, salt);
 
         // Create user in database
         const newUser = new User({
-                username,
-                email,
-                mobileno,
-                password: hashPassword, 
-            });
-        console.log("new user ",newUser);   
+            username,
+            email,
+            mobileno,
+            password: hashPassword,
+        });
+        console.log("new user ", newUser);
         // Generate JWT
-        if(newUser){
+        if (newUser) {
             await newUser.save();
-            
+
             // // Create initial balance for the new user
             // await Balance.create({
             //     userId: newUser._id,
@@ -81,8 +81,8 @@ export const registerUser = async (req, res) => {
             await Category.insertMany(categoriesWithUserId);
 
             // Attach token as HttpOnly(res.cookie( , , {httpOnly : true})) cookie 
-            generateTokenAndSetCookie(newUser._id,res);
-            
+            generateTokenAndSetCookie(newUser._id, res);
+
             // Send success response
             res.status(201).json({
                 _id: newUser._id,
@@ -94,8 +94,8 @@ export const registerUser = async (req, res) => {
             console.log('registered user');
         }
         else {
-                res.status(400).json({ error: "Unable to save user in db" });
-            }
+            res.status(400).json({ error: "Unable to save user in db" });
+        }
     } catch (error) {
         console.log('error salting password and creating user in db');
         res.status(500).json({ error: "Internal Server Error" });
@@ -115,32 +115,32 @@ export const loginUser = async (req, res) => {
     // Show loading state
 
     // Send login API request
-    
+
     console.log('login api reached');
     try {
-        const {email,password} = req.body;
-        console.log(email,password);
+        const { email, password } = req.body;
+        console.log(email, password);
         ////////////////////////////////////////////
         ////////////////////////////////////////////
         // login user not found but hNDLING ON ui is remaining
-        
+
         if (!email || !password) {
             return res.status(400).json({ error: "Please provide both email and password" });
         }
-    
+
         // Check if user exists in database
         const user = await User.findOne({ email }).lean();
-    
+
         const isPasswordCorrect = await bcrypt.compare(password, user?.password || "");
-    
+
         if (!user || !isPasswordCorrect) {
             console.log('user not found');
             return res.status(400).json({ error: "Invalid email or password" });
         }
-    
-        generateTokenAndSetCookie(user._id,res);
-    
-        res.status(201).json({
+
+        generateTokenAndSetCookie(user._id, res);
+
+        res.status(200).json({
             _id: user._id,
             username: user.username,
             email: user.email,
@@ -151,16 +151,20 @@ export const loginUser = async (req, res) => {
     }
 };
 
-export const logoutUser = async(req,res)=>{
+export const logoutUser = async (req, res) => {
     // res.cookie('jwt', '', {
     //     httpOnly: true, 
     //     expires: new Date(0) // Expire immediately (1970)
     // });
-    
-    try {
-        res.clearCookie('jwt', { httpOnly: true});
 
-        res.status(201).json({ message: "User logged out successfully" });
+    try {
+        res.clearCookie('jwt', {
+            httpOnly: true,
+            sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+            secure: process.env.NODE_ENV === 'production',
+        });
+
+        res.status(200).json({ message: "User logged out successfully" });
 
     } catch (error) {
         res.status(500).json('internal server error logout failed');
@@ -169,22 +173,22 @@ export const logoutUser = async(req,res)=>{
 
 
 export const updateProfile = async (req, res) => {
-  try {
-    const { username, email, mobileno } = req.body;
-    const userId = req.params.id;
+    try {
+        const { username, email, mobileno } = req.body;
+        const userId = req.params.id;
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId, 
-      { username, email, mobileno }, 
-      { new: true, runValidators: true }
-    ).select('-password'); // Don't send password back!
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { username, email, mobileno },
+            { new: true, runValidators: true }
+        ).select('-password'); // Don't send password back!
 
-    if (!updatedUser) {
-      return res.status(404).json({ message: "User not found" });
+        if (!updatedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json({ message: "Profile updated successfully", user: updatedUser });
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error", error: error.message });
     }
-
-    res.status(200).json({ message: "Profile updated successfully", user: updatedUser });
-  } catch (error) {
-    res.status(500).json({ message: "Internal server error", error: error.message });
-  }
 };
