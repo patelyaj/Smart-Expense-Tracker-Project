@@ -52,23 +52,44 @@ export const exportTransactionsCsv = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+// controllers/transactionController.js
 
 export const fetchTransactions = async (req, res) => {
-    console.log("fetch transactions api called",req.params);
     try {
         const userId = req.params.id;
-        // ADDED: Extract page and limit for pagination (defaults to page 1, limit 10)
-        const { startDate, endDate, page = 1, limit = 10 } = req.query; 
+        // 1. Get filters from query params
+        const { startDate, endDate, page = 1, limit = 10, search = "", category = "all" } = req.query; 
         
         let query = { userId, isDeleted: false };
+
+        // 2. Date Range Filter
         if (startDate && endDate) {
             query.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
         }
 
-        // ADDED: Calculate skip value for pagination
+        // 3. Search Filter (Title or Description)
+        if (search) {
+            query.$or = [
+                { title: { $regex: search, $options: "i" } },
+                { description: { $regex: search, $options: "i" } }
+            ];
+        }
+
+        // 4. Category Filter
+        if (category !== "all") {
+            // Find the category ID first since the transaction stores the ID
+            const categoryDoc = await categoryModel.findOne({ name: category, userId });
+            if (categoryDoc) {
+                query.category = categoryDoc._id;
+            } else {
+                // If category requested doesn't exist for user, return empty
+                return res.status(200).json({ transactions: [], totalPages: 0, currentPage: Number(page) });
+            }
+        }
+
         const skip = (Number(page) - 1) * Number(limit);
         
-        // ADDED: Get total document count to calculate total pages
+        // 5. countDocuments now uses the same query as the search!
         const totalTransactions = await transactionModel.countDocuments(query);
         const totalPages = Math.ceil(totalTransactions / Number(limit));
 
@@ -76,19 +97,15 @@ export const fetchTransactions = async (req, res) => {
             .find(query)
             .populate('category', 'name type')
             .sort({ date: -1 })
-            .skip(skip) // ADDED: Skip records of previous pages
-            .limit(Number(limit)) // ADDED: Limit to 10 records
+            .skip(skip)
+            .limit(Number(limit))
             .lean(); 
 
-            console.log("Transactions fetched from DB finished ", transactions);
-
-        // CHANGED: Return an object with transactions and pagination metadata
         res.status(200).json({ transactions, totalPages, currentPage: Number(page) });
     } catch(err){
         res.status(500).json({message:"Internal server error"});
     }
 }
-
 export const addTransaction = async (req, res) => {
     console.log("add transaction api called",req.body);
     try {

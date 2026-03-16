@@ -3,147 +3,128 @@ import { useDispatch, useSelector } from "react-redux";
 import dayjs from "dayjs";
 import { 
   Container, Box, Typography, Button, IconButton, Paper, 
-  Avatar, Stack, Chip, Divider, MenuItem, TextField, Popover, InputAdornment, Pagination // ADDED Pagination import
+  Avatar, Stack, Divider, MenuItem, TextField, Popover, InputAdornment, Pagination 
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { DatePicker } from "@mui/x-date-pickers";
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
-
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import SearchIcon from '@mui/icons-material/Search';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
 import Navbar from "../../../Component/DashboardComponents/Navbar";
 import TransactionModal from "./TransactionModal";
-import { fetchTransactions, deleteTransaction, fetchIncomeExpense } from "../../../redux/Features/transactionSlice";
-import { fetchCategories } from "../../../redux/Features/categorySlice";
-
-// Import budget progress to keep it in sync for alerts
-import { fetchBudgetProgress } from "../../../redux/Features/budgetSlice";
-
 import DashboardDatePicker from "../../../Component/DashboardDatePicker";
-
 import { Dialog, DialogTitle, DialogContent } from "@mui/material";
 import api from "../../../utils/axiosInstance";
 
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
+// Redux Actions
+import { fetchTransactions, deleteTransaction, fetchIncomeExpense } from "../../../redux/Features/transactionSlice";
+import { fetchCategories } from "../../../redux/Features/categorySlice";
+import { fetchBudgetProgress } from "../../../redux/Features/budgetSlice";
 
 const Transaction = () => {
   const dispatch = useDispatch();
   const userId = JSON.parse(localStorage.getItem("userInfo"))?._id;
   
-  // ADDED: Pull totalPages from the redux store
   const { transactions, status, totalPages } = useSelector((state) => state.transaction);
-  const { categories } = useSelector((state) => state.category); 
+  const { categories } = useSelector((state) => state.category);
 
-  // Main date state that actually triggers API calls
+  // Filter States
   const [startDate, setStartDate] = useState(dayjs().startOf("month").toISOString());
   const [endDate, setEndDate] = useState(dayjs().endOf("month").toISOString());
-
-  // ADDED: Page state for pagination
-  const [page, setPage] = useState(1);
-
-  // Modal state for Add / Edit
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editData, setEditData] = useState(null);
-
-  // Filters applied only on frontend (no API call needed)
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
 
+  // UI States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editData, setEditData] = useState(null);
   const [descModalOpen, setDescModalOpen] = useState(false);
   const [selectedDescription, setSelectedDescription] = useState("");
-
-  // Temporary date values used inside the popover before clicking "Apply"
   const [anchorEl, setAnchorEl] = useState(null);
-
 
   const openDatePopover = Boolean(anchorEl);
 
-  // Whenever final date changes → refetch transactions + categories
+  // 1. Handle Debouncing for Search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // 2. Fetch Transactions (Triggers on Date, Page, Debounced Search, or Category change)
   useEffect(() => {
     if (userId && startDate && endDate) {
-      // ADDED: Passed page and limit to fetchTransactions
-      dispatch(fetchTransactions({ userId, startDate, endDate, page, limit: 10 }));
+      dispatch(fetchTransactions({ 
+        userId, 
+        startDate, 
+        endDate, 
+        page, 
+        limit: 10,
+        search: debouncedSearch,
+        category: selectedCategory 
+      }));
       dispatch(fetchCategories()); 
-      // Fetch income, expense, and budgets so the modal has data for smart alerts
       dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
       dispatch(fetchBudgetProgress(userId));
     }
-  }, [startDate, endDate, page, dispatch, userId]); // ADDED: page as dependency
+  }, [startDate, endDate, page, debouncedSearch, selectedCategory, dispatch, userId]);
 
-  // Apply frontend filters (category + search)
-  // debouncing needed
- const filteredTransactions = useMemo(() => {
-  const query = searchQuery.toLowerCase();
-
-  return transactions.filter((txn) => {
-    const catName = txn.category?.name || "Uncategorized";
-    const description = txn.description || "";
-    const title = txn.title || "";
-
-    // Category filter
-    const matchesCategory =
-      selectedCategory === "all" || catName === selectedCategory;
-
-    // Search filter (title OR description)
-    const matchesSearch =
-      title.toLowerCase().includes(query) ||
-      description.toLowerCase().includes(query);
-
-    return matchesCategory && matchesSearch;
-  });
-}, [transactions, selectedCategory, searchQuery]);
-
-  // Group transactions by date for display
+  // 3. Group transactions by date for display
   const groupedTransactions = useMemo(() => {
     const groups = {};
-    filteredTransactions.forEach((txn) => {
+    transactions.forEach((txn) => {
       const dateKey = dayjs(txn.date).format("MMMM D, YYYY");
       if (!groups[dateKey]) groups[dateKey] = [];
       groups[dateKey].push(txn);
     });
     return groups;
-  }, [filteredTransactions]);
+  }, [transactions]);
 
-  // Delete transaction and refresh related data
+  // Handlers
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setPage(1); // Reset to first page on search
+  };
+
+  const handleCategoryChange = (e) => {
+    setSelectedCategory(e.target.value);
+    setPage(1); // Reset to first page on category filter
+  };
+
   const handleDelete = async (txnId) => {
     if (window.confirm("Are you sure you want to delete this transaction?")) {
       await dispatch(deleteTransaction(txnId)).unwrap();
-      // ADDED: Refetch keeping current pagination info
-      dispatch(fetchTransactions({ userId, startDate, endDate, page, limit: 10 }));
+      dispatch(fetchTransactions({ 
+        userId, startDate, endDate, page, limit: 10, 
+        search: debouncedSearch, category: selectedCategory 
+      }));
       dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
-      // Refresh budget progress after deletion
       dispatch(fetchBudgetProgress(userId));
     }
   };
 
-
-  // csv functionality
   const handleExportCsv = async () => {
     try {
-      // Fetch the CSV as a Blob
       const response = await api.get(`/transactions/exportcsv/${userId}`, {
         params: { startDate, endDate },
-        responseType: 'blob', // CRITICAL: Tells Axios to expect binary data, not JSON
+        responseType: 'blob',
         withCredentials: true
       });
 
-      // Create a temporary URL for the Blob
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      
-      // Create a hidden <a> tag and click it to trigger the download
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `Transactions_${dayjs(startDate).format('MMM_YYYY')}.csv`);
       document.body.appendChild(link);
       link.click();
-      
-      // Cleanup
       link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
@@ -158,7 +139,7 @@ const Transaction = () => {
 
       <Container maxWidth="md" sx={{ mt: 5 }}>
         
-        {/* Page header */}
+        {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4" fontWeight={800} color="text.primary">
             Transactions
@@ -174,19 +155,19 @@ const Transaction = () => {
               Export CSV
             </Button>
 
-          <Button 
-            variant="contained" 
-            startIcon={<AddIcon />} 
-            onClick={() => { setEditData(null); setIsModalOpen(true); }}
-            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, px: 3, boxShadow: 2 }}
-            disableElevation
-          >
-            Add Transaction
-          </Button>
+            <Button 
+              variant="contained" 
+              startIcon={<AddIcon />} 
+              onClick={() => { setEditData(null); setIsModalOpen(true); }}
+              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, px: 3 }}
+              disableElevation
+            >
+              Add Transaction
+            </Button>
           </Box>
         </Box>
 
-        {/* Filters */}
+        {/* Filter Bar */}
         <Paper 
           elevation={0}
           sx={{ 
@@ -196,12 +177,11 @@ const Transaction = () => {
             bgcolor: 'background.paper'
           }} 
         >
-
-          {/* Search input */}
+          {/* Search */}
           <TextField
             placeholder="Search By Description..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
             size="small"
             InputProps={{
               startAdornment: (
@@ -213,12 +193,12 @@ const Transaction = () => {
             sx={{ flex: 1, minWidth: 200 }}
           />
 
-          {/* Category filter */}
+          {/* Category */}
           <TextField
             select
             label="Category"
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={handleCategoryChange}
             size="small"
             sx={{ minWidth: 180 }}
           >
@@ -228,24 +208,19 @@ const Transaction = () => {
             ))}
           </TextField>
 
-          {/* Date range selector */}
+          {/* Date Picker Trigger */}
           <Button
             variant="outlined"
             endIcon={<CalendarMonthIcon />}
-            onClick={(e) => {
-              
-              setAnchorEl(e.currentTarget);
-            }}
+            onClick={(e) => setAnchorEl(e.currentTarget)}
             sx={{ 
               borderRadius: 2, textTransform: 'none', fontWeight: 600, 
-              color: 'text.primary', borderColor: 'divider', px: 3, py: 1, gap : 4
+              color: 'text.primary', borderColor: 'divider', px: 3, py: 1
             }}
           >
             {dayjs(startDate).format("MMM D, YYYY")} — {dayjs(endDate).format("MMM D, YYYY")}
           </Button>
 
-          {/* Date popover */}
-          {/* Floating Calendar Interface */}
           <Popover 
             open={openDatePopover} 
             anchorEl={anchorEl} 
@@ -253,21 +228,20 @@ const Transaction = () => {
             anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
             PaperProps={{ sx: { mt: 1, borderRadius: 3, boxShadow: 4 } }}
           >
-             <DashboardDatePicker 
+            <DashboardDatePicker 
               initialStartDate={startDate}
               initialEndDate={endDate}
               onApply={(newStart, newEnd) => {
-                // Update Local state ONLY when Apply is clicked!
                 setStartDate(newStart);
                 setEndDate(newEnd);
-                setPage(1); // ADDED: Reset back to page 1 whenever date range filter is changed
+                setPage(1);
               }}
               onClose={() => setAnchorEl(null)} 
             />
           </Popover>
         </Paper>
 
-        {/* Loading / Empty state */}
+        {/* Content States */}
         {status === "loading" && (
           <Typography color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>
             Loading records...
@@ -287,14 +261,13 @@ const Transaction = () => {
           {Object.entries(groupedTransactions).map(([date, txns]) => (
             <Box key={date}>
               <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ mb: 1.5, ml: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {date} ------------------------------------------------------------------------------------------------------------------------------------
+                {date} —————————————————————————————————————————————————
               </Typography>
               
               <Paper sx={{ borderRadius: 3, overflow: 'hidden', border: (theme) => `1px solid ${theme.palette.divider}` }} elevation={0}>
                 {txns.map((txn, index) => {
                   const isIncome = txn.type === "income";
                   const catName = txn.category?.name || "Uncategorized";
-                  const description = txn.description || "No description";
 
                   return (
                     <React.Fragment key={txn._id}>
@@ -304,7 +277,6 @@ const Transaction = () => {
                         '&:hover': { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03) } 
                       }}>
                         
-                        {/* Left side info */}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
                           <Avatar sx={{ 
                             width: 48, height: 48,
@@ -314,54 +286,30 @@ const Transaction = () => {
                             {isIncome ? <TrendingUpIcon /> : <TrendingDownIcon />}
                           </Avatar>
                           <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-
-                              <Typography
-                                variant="subtitle1"
-                                fontWeight={700}
-                                sx={{ lineHeight: 1.2 }}
-                              >
-                                {txn.title}
+                            <Typography variant="subtitle1" fontWeight={700}>
+                              {txn.title}
+                            </Typography>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                              <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
+                                {catName}
                               </Typography>
-
-                              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-
-                                <Typography
-                                  variant="caption"
-                                  sx={{ color: "text.secondary", fontWeight: 500 }}
+                              {txn.description && (
+                                <Button
+                                  size="small"
+                                  sx={{ textTransform: "none", fontSize: "0.7rem", minWidth: "auto", color: "primary.main" }}
+                                  onClick={() => { setSelectedDescription(txn.description); setDescModalOpen(true); }}
                                 >
-                                  {catName}
-                                </Typography>
-
-                                {description && (
-                                  <Button
-                                    size="small"
-                                    sx={{
-                                      textTransform: "none",
-                                      fontSize: "0.7rem",
-                                      minWidth: "auto",
-                                      padding: "0px 6px",
-                                      color: "primary.main"
-                                    }}
-                                    onClick={() => {
-                                      setSelectedDescription(description);
-                                      setDescModalOpen(true);
-                                    }}
-                                  >
-                                    • View description
-                                  </Button>
-                                )}
-
-                              </Box>
-
+                                  • View description
+                                </Button>
+                              )}
                             </Box>
+                          </Box>
                         </Box>
 
-                        {/* Right side actions */}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                           <Typography variant="h6" fontWeight={800} color={isIncome ? 'success.main' : 'error.main'}>
-                            {isIncome ? "+" : "-"}&#8377;{txn.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {isIncome ? "+" : "-"}&#8377;{txn.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </Typography>
-                          
                           <Box sx={{ display: 'flex', gap: 0.5 }}>
                             <IconButton size="small" onClick={() => { setEditData(txn); setIsModalOpen(true); }}>
                               <EditIcon fontSize="small" />
@@ -374,14 +322,14 @@ const Transaction = () => {
                       </Box>
                       {index !== txns.length - 1 && <Divider />}
                     </React.Fragment>
-                  )
+                  );
                 })}
               </Paper>
             </Box>
           ))}
         </Stack>
 
-        {/* ADDED: Pagination Component rendered below transactions list */}
+        {/* Pagination */}
         {totalPages > 1 && (
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
             <Pagination 
@@ -393,10 +341,9 @@ const Transaction = () => {
             />
           </Box>
         )}
-
       </Container>
 
-      {/* Modal */}
+      {/* Modals */}
       {isModalOpen && (
         <TransactionModal
           onClose={() => setIsModalOpen(false)}
@@ -408,18 +355,10 @@ const Transaction = () => {
         />
       )}
 
-      <Dialog
-        open={descModalOpen}
-        onClose={() => setDescModalOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
+      <Dialog open={descModalOpen} onClose={() => setDescModalOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Description</DialogTitle>
-
         <DialogContent>
-          <Typography>
-            {selectedDescription || "No description provided."}
-          </Typography>
+          <Typography>{selectedDescription || "No description provided."}</Typography>
         </DialogContent>
       </Dialog>
     </Box>

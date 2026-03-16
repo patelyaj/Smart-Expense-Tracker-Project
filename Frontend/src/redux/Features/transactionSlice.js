@@ -13,13 +13,16 @@ const fetchExpenseByCategory = createAsyncThunk(
     }
 );
 
+// redux/Features/transactionSlice.js
+
 const fetchTransactions = createAsyncThunk(
     'transaction/fetchTransactions',
-    // ADDED: Accept page and limit, default to 1 and 10
-    async ({userId,startDate,endDate, page = 1, limit = 10}, { rejectWithValue }) => {
+    async ({userId, startDate, endDate, page = 1, limit = 10, search = "", category = "all"}, { rejectWithValue }) => {
         try {
-            // ADDED: pass page and limit in params
-            const response = await api.get(`/transactions/fetchtransactions/${userId}`, {params:{startDate,endDate, page, limit}, withCredentials: true });
+            const response = await api.get(`/transactions/fetchtransactions/${userId}`, {
+                params: { startDate, endDate, page, limit, search, category }, // Pass them here
+                withCredentials: true 
+            });
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to fetch transactions');
@@ -95,7 +98,7 @@ const transactionSlice = createSlice({
         builder
         .addCase(fetchTransactions.pending, (state) => {
             state.status = 'loading';
-        })
+        }) 
         .addCase(fetchTransactions.fulfilled, (state, action) => {
             state.status = 'succeeded';
             // Assuming your backend returns an array of transactions -> now returns an object with pagination
@@ -176,4 +179,4 @@ const transactionSlice = createSlice({
 });
 
 export default transactionSlice.reducer;
-export {fetchExpenseByCategory, fetchTransactions,addTransaction, editTransaction, deleteTransaction, fetchIncomeExpense };
+export {fetchExpenseByCategory, fetchTransactions ,addTransaction, editTransaction, deleteTransaction, fetchIncomeExpense };
