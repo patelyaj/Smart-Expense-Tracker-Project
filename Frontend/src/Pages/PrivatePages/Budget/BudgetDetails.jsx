@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from "../../../Component/DashboardComponents/Navbar";
 
 import {
@@ -8,7 +8,8 @@ import {
   Paper,
   LinearProgress,
   Stack,
-  Button
+  Button,
+  CircularProgress
 } from "@mui/material";
 
 import { useNavigate, useParams } from "react-router-dom";
@@ -24,7 +25,9 @@ function BudgetDetails() {
   const dispatch = useDispatch();
   const { budgetId } = useParams();
 
-  const { budgetDetails } = useSelector((state) => state.budget);
+  const { budgetDetails, status } = useSelector((state) => state.budget);
+  
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (budgetId) {
@@ -32,18 +35,33 @@ function BudgetDetails() {
     }
   }, [budgetId, dispatch]);
 
-  // Make sure we have the nested budget object before rendering
-  if (!budgetDetails || !budgetDetails.budget) return null;
+  // Provide a proper loading state screen while details are fetched
+  if (!budgetDetails || !budgetDetails.budget || status === 'loading') {
+    return (
+      <Box sx={{ bgcolor: "background.default", minHeight: "100vh" }}>
+        <Navbar />
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '70vh' }}>
+            <CircularProgress size={50} thickness={4} />
+        </Box>
+      </Box>
+    );
+  }
 
-  // FIX: limit is nested inside budgetDetails.budget!
   const limit = budgetDetails.budget.limit;
-  
-  const progress = limit 
-    ? (budgetDetails.spent / limit) * 100 
-    : 0;
+  const progress = limit ? (budgetDetails.spent / limit) * 100 : 0;
+
+  const handleDeleteClick = async () => {
+    setIsDeleting(true);
+    try {
+      await dispatch(deleteBudget(budgetId)).unwrap();
+      navigate("/budget"); 
+    } catch (error) {
+      console.error("Failed to delete budget", error);
+      setIsDeleting(false); // Only stop loading if it failed, otherwise we are unmounting anyway
+    }
+  };
 
   return (
-    // Automatically uses theme.palette.background.default
     <Box sx={{ bgcolor: "background.default", minHeight: "100vh" }}>
       <Navbar />
 
@@ -58,7 +76,6 @@ function BudgetDetails() {
 
         {/* STATS */}
         <Stack direction="row" spacing={2} sx={{ mb: 4 }}>
-          {/* Uses theme.palette.background.paper automatically */}
           <Paper sx={{ p: 3, flex: 1, bgcolor: "background.paper" }}>
             <Typography color="text.secondary">Originally Budgeted</Typography>
             <Typography variant="h5" color="text.primary">
@@ -68,7 +85,6 @@ function BudgetDetails() {
 
           <Paper sx={{ p: 3, flex: 1, bgcolor: "background.paper" }}>
             <Typography color="text.secondary">Spent so far</Typography>
-            {/* Uses theme.palette.error.main */}
             <Typography color="error.main" variant="h5">
               &#8377;{budgetDetails.spent}
             </Typography>
@@ -76,7 +92,6 @@ function BudgetDetails() {
 
           <Paper sx={{ p: 3, flex: 1, bgcolor: "background.paper" }}>
             <Typography color="text.secondary">Money left</Typography>
-            {/* Uses theme.palette.success.main */}
             <Typography color="success.main" variant="h5">
               &#8377;{budgetDetails.remaining}
             </Typography>
@@ -102,9 +117,8 @@ function BudgetDetails() {
             sx={{
               height: 14,
               borderRadius: 7,
-              bgcolor: "background.default", // subtle background for the unfilled track
+              bgcolor: "background.default", 
               "& .MuiLinearProgress-bar": {
-                // If over 100%, make the bar red, otherwise use standard primary blue
                 backgroundColor: progress > 100 ? "error.main" : "primary.main"
               }
             }}
@@ -113,17 +127,14 @@ function BudgetDetails() {
 
         {/* ACTIONS */}
         <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
-          {/* Removed the Edit Button here as requested! */}
           <Button
             color="error"
             variant="outlined"
-            onClick={() => {
-              dispatch(deleteBudget(budgetId)).then(() => {
-                navigate("/budget"); // Navigate back to list after delete
-              });
-            }}
+            onClick={handleDeleteClick}
+            disabled={isDeleting}
+            sx={{ minWidth: '150px' }}
           >
-            Delete Budget
+            {isDeleting ? <CircularProgress size={24} color="inherit" /> : "Delete Budget"}
           </Button>
         </Stack>
 

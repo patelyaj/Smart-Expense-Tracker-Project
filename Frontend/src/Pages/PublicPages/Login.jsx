@@ -3,13 +3,16 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { Link, useNavigate } from 'react-router-dom';
 import { loginUser } from '../../redux/Features/authSlice';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux'; // Added useSelector
 import { toast } from "react-toastify";
 import './Login.css';
 
 function Login() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    
+    // for loading state
+    const { loading } = useSelector((state) => state.auth); 
     
     const formik = useFormik({
         initialValues: {
@@ -30,10 +33,10 @@ function Login() {
         onSubmit: async (values) => {
             try {
                 await dispatch(loginUser(values)).unwrap();
-                toast.success("Login successful ✅");
+                toast.success("Login successful ");
                 navigate("/dashboard");
             } catch (error) {
-                toast.error(error || "Login failed ❌");
+                toast.error(error || "Login failed");
             }
         }
     });
@@ -68,7 +71,15 @@ function Login() {
                         )}
                     </div>
 
-                    <button className="auth-submit-btn" type="submit">Login</button>
+{/* disable button  */}
+                    <button 
+                        className="auth-submit-btn" 
+                        type="submit"
+                        disabled={loading}
+                        style={{ cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}
+                    >
+                        {loading ? "Logging in..." : "Login"}
+                    </button>
 
                 </form>
                 

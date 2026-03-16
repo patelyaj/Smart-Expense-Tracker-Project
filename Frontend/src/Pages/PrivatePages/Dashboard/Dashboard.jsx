@@ -23,9 +23,9 @@ const Dashboard = () => {
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', pb: 10 }}>
       <Navbar />
 
-      <Container maxWidth="xl" sx={{ mt: 4 }}>
-        
-        {/* 🎛️ TOP HEADER: Title Left, Date Dropdown Right */}
+    <Container maxWidth={false} sx={{ mt: 4 }}>        
+
+        {/* TOP HEADER: Title Left, Date Dropdown Right */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
           
           <Typography variant="h5" fontWeight={800} color="text.primary">
@@ -78,10 +78,10 @@ const Dashboard = () => {
 
         </Box>
 
-        {/* 📊 EXACT POSITIONING: Income -> Balance -> Expense */}
+        {/*  EXACT POSITIONING: Income -> Balance -> Expense */}
         <FinancialSummary />
 
-        {/* 📈 Analytics Section */}
+        {/*  Analytics Section */}
         <AnalyticsSection />
 
       </Container>

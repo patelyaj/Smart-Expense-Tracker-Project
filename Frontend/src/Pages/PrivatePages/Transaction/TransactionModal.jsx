@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import dayjs from "dayjs";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, TextField, MenuItem, Autocomplete, Stack
+  Button, TextField, MenuItem, Autocomplete, Stack, CircularProgress
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers";
 import { toast } from "react-toastify";
@@ -20,6 +20,9 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
   const { categories } = useSelector((state) => state.category);
   const { income, expense } = useSelector((state) => state.transaction);
   const { progressBudgets } = useSelector((state) => state.budget);
+
+  // Added local loading state for submission
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     dispatch(fetchCategories());
@@ -43,10 +46,11 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation: Prevent zero or negative amounts
     if (Number(formData.amount) <= 0) {
       return toast.error("Please enter an amount greater than zero.");
     }
+
+    setIsSubmitting(true); // Start spinner
 
     const payload = {
       ...formData,
@@ -58,10 +62,9 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
       if (mode === "add") {
         await dispatch(addTransaction(payload)).unwrap();
 
-        // --- Smart Alerts Logic ---
         const amountNum = Number(formData.amount);
         if (formData.type === "income") {
-          toast.success(`Awesome! Added ₹${amountNum} to income!`);
+          toast.success(`Awesome! Added \u20B9${amountNum} to income!`);
         } else if (formData.type === "expense") {
           let budgetAlertFired = false;
           const matchingBudgets = progressBudgets?.filter(b => b.category?.name === formData.category);
@@ -91,7 +94,6 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
           }
         }
       } else {
-        // Edit Mode
         await dispatch(editTransaction({ 
           transactionId: existingData._id, 
           updatedData: payload 
@@ -99,8 +101,6 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
         toast.success("Transaction updated successfully.");
       }
 
-      // --- REFRESH DATA ---
-      // Resetting to page 1 and clearing filters ensures the user sees their new/edited data immediately
       dispatch(fetchTransactions({ 
         userId, 
         startDate, 
@@ -119,6 +119,8 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
     } catch (error) {
       console.error("Save Error:", error);
       toast.error(error?.message || "Failed to save transaction.");
+    } finally {
+      setIsSubmitting(false); // Stop spinner
     }
   };
 
@@ -156,14 +158,13 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
               value={formData.amount}
               onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
               fullWidth required
-              InputProps={{ startAdornment: <span style={{ marginRight: 8 }}>₹</span> }}
+              InputProps={{ startAdornment: <span style={{ marginRight: 8 }}>&#8377;</span> }}
             />
 
             <Autocomplete
               freeSolo
               options={categorySuggestions}
               value={formData.category}
-              // onChange handles dropdown selection, onInputChange handles manual typing
               onChange={(event, newValue) => setFormData({ ...formData, category: newValue || "" })}
               onInputChange={(event, newInputValue) => setFormData({ ...formData, category: newInputValue })}
               renderInput={(params) => (
@@ -190,9 +191,17 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
         </DialogContent>
 
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={onClose} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
-          <Button type="submit" variant="contained" disableElevation sx={{ fontWeight: 600, borderRadius: 2 }}>
-            {mode === "add" ? "Save" : "Update"}
+          <Button onClick={onClose} color="inherit" sx={{ fontWeight: 600 }} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            variant="contained" 
+            disableElevation 
+            disabled={isSubmitting}
+            sx={{ fontWeight: 600, borderRadius: 2, minWidth: "100px" }}
+          >
+            {isSubmitting ? <CircularProgress size={24} color="inherit" /> : (mode === "add" ? "Add" : "Update")}
           </Button>
         </DialogActions>
       </form>

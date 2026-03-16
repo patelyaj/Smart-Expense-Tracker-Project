@@ -2,7 +2,7 @@ import React from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { Link, useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { registerUser } from '../../redux/Features/authSlice';
 import { toast } from "react-toastify";
 import './Signup.css';
@@ -10,6 +10,9 @@ import './Signup.css';
 function Signup() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    
+    // ✅ Extract loading state from Redux
+    const { loading } = useSelector((state) => state.auth);
 
     const formik = useFormik({
         initialValues: {
@@ -40,10 +43,10 @@ function Signup() {
         onSubmit: async (values) => {
             try {
                 await dispatch(registerUser(values)).unwrap();
-                toast.success("Signup successful 🎉");
+                toast.success("Signup successful ");
                 navigate("/dashboard");
             } catch (error) {
-                toast.error(error || "Signup failed ❌");
+                toast.error(error || "Signup failed ");
             }
         }
     });
@@ -100,7 +103,15 @@ function Signup() {
                         )}
                     </div>
 
-                    <button className="auth-submit-btn" type="submit">Signup</button>
+                    {/* Added disabled state and dynamic text */}
+                    <button 
+                        className="auth-submit-btn" 
+                        type="submit"
+                        disabled={loading}
+                        style={{ cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}
+                    >
+                        {loading ? "Signing up..." : "Signup"}
+                    </button>
 
                 </form>
                 

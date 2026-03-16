@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Route, Routes, Navigate  } from 'react-router-dom'
 import './App.css'
 import PublicRoute from './Pages/routes/PublicRoute'
 import PrivateRoute from './Pages/routes/PrivateRoute'
@@ -36,7 +36,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route element={<PublicRoute/>} >
-            <Route path="/" element={<Home/>} />
+          <Route path="/" element={<Navigate to="/login" replace />} />
+            {/* <Route path="/" element={<Home/>} /> */}
             <Route path="/login" element={<Login/>} />
             <Route path="/signup" element={<Signup/>} /> 
           </Route>
@@ -55,5 +56,4 @@ function App() {
 }
 
 export default App;
-
 //meaningless comment

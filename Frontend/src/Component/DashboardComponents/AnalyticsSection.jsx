@@ -13,18 +13,17 @@ import {
   CartesianGrid
 } from "recharts";
 
-// Imported MUI components and useTheme hook to access the current theme colors
-import { Box, Paper, Typography, useTheme } from "@mui/material";
+import { Box, Paper, Typography, useTheme, CircularProgress } from "@mui/material";
 
 import { fetchExpenseByCategory } from "../../redux/Features/transactionSlice";
 
 function AnalyticsSection() {
   const dispatch = useDispatch();
   
-  // Access the active theme (light or dark)
   const theme = useTheme();
 
-  const { income, expense, expenseChartData } = useSelector(
+  // Extract status for loading states
+  const { income, expense, expenseChartData, status } = useSelector(
     (state) => state.transaction
   );
 
@@ -43,29 +42,18 @@ function AnalyticsSection() {
     { name: "Expense", value: expense || 0 }
   ];
 
-  // Defined theme-aware colors for the pie chart using your success and error palette
   const pieColors = [theme.palette.success.main, theme.palette.error.main];
 
-  // Custom label renderer for donut chart moved inside the component to access theme colors
-  const renderCashFlowLabel = ({
-    cx,
-    cy,
-    midAngle,
-    outerRadius,
-    percent,
-    name
-  }) => {
+  const renderCashFlowLabel = ({ cx, cy, midAngle, outerRadius, percent, name }) => {
     const RADIAN = Math.PI / 180;
     const radius = outerRadius + 25;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
-    // Apply specific theme color based on income or expense
     const color = name === "Income" ? theme.palette.success.main : theme.palette.error.main;
 
     return (
       <g>
-        {/* Text label */}
         <text
           x={x}
           y={y}
@@ -77,7 +65,6 @@ function AnalyticsSection() {
           {name} {(percent * 100).toFixed(1)}%
         </text>
 
-        {/* Connector line */}
         <line
           x1={cx + outerRadius * Math.cos(-midAngle * RADIAN)}
           y1={cy + outerRadius * Math.sin(-midAngle * RADIAN)}
@@ -99,7 +86,6 @@ function AnalyticsSection() {
       <Box
         sx={{
           display: "grid",
-          // Made the grid responsive: stack on mobile, side-by-side on desktop
           gridTemplateColumns: { xs: "1fr", md: "1.2fr 2fr" },
           gap: 4
         }}
@@ -121,42 +107,42 @@ function AnalyticsSection() {
           </Typography>
 
           <div style={{ width: "100%", height: 400 }}>
-            <ResponsiveContainer>
-              <PieChart>
+            {status === "loading" ? (
+              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={incomeExpenseData}
+                    innerRadius={80}
+                    outerRadius={110}
+                    paddingAngle={4}
+                    dataKey="value"
+                    labelLine={false}
+                    label={renderCashFlowLabel}
+                  >
+                    {incomeExpenseData.map((entry, index) => (
+                      <Cell key={index} fill={pieColors[index]} />
+                    ))}
+                  </Pie>
 
-                <Pie
-                  data={incomeExpenseData}
-                  innerRadius={80}
-                  outerRadius={110}
-                  paddingAngle={4}
-                  dataKey="value"
-                  labelLine={false}
-                  label={renderCashFlowLabel}
-                >
-                  {incomeExpenseData.map((entry, index) => (
-                    <Cell key={index} fill={pieColors[index]} />
-                  ))}
-                </Pie>
-
-                <Tooltip
-                  formatter={(value) =>   `\u20B9${value.toLocaleString()}`}
-                  // Theme-aware tooltip styling
-                  contentStyle={{ 
-                    backgroundColor: theme.palette.background.paper,
-                    borderColor: theme.palette.divider,
-                    color: theme.palette.text.primary,
-                    borderRadius: '8px'
-                  }}
-                  itemStyle={{ color: theme.palette.text.primary }}
-                />
-
-              </PieChart>
-            </ResponsiveContainer>
+                  <Tooltip
+                    formatter={(value) => `\u20B9${value.toLocaleString()}`}
+                    contentStyle={{ 
+                      backgroundColor: theme.palette.background.paper,
+                      borderColor: theme.palette.divider,
+                      color: theme.palette.text.primary,
+                      borderRadius: '8px'
+                    }}
+                    itemStyle={{ color: theme.palette.text.primary }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
-
         </Paper>
-
-
 
         {/* BAR CHART */}
         <Paper
@@ -174,7 +160,11 @@ function AnalyticsSection() {
           </Typography>
 
           <div style={{ width: "100%", height: 400 }}>
-            {expenseChartData?.length > 0 ? (
+            {status === "loading" ? (
+              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+                <CircularProgress />
+              </Box>
+            ) : expenseChartData?.length > 0 ? (
               <ResponsiveContainer>
                 <BarChart
                   data={expenseChartData}
@@ -183,7 +173,7 @@ function AnalyticsSection() {
                   <CartesianGrid
                     strokeDasharray="4 4"
                     vertical={false}
-                    stroke={theme.palette.divider} // Theme-aware grid lines
+                    stroke={theme.palette.divider} 
                   />
 
                   <XAxis
@@ -195,19 +185,18 @@ function AnalyticsSection() {
                     interval={0}
                     height={70}
                     tickMargin={20}
-                    tick={{ fill: theme.palette.text.secondary }} // Theme-aware axis text
+                    tick={{ fill: theme.palette.text.secondary }} 
                   />
 
                   <YAxis
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(value) => `\u20B9${value}`}
-                    tick={{ fill: theme.palette.text.secondary }} // Theme-aware axis text
+                    tick={{ fill: theme.palette.text.secondary }} 
                   />
 
                   <Tooltip
                     formatter={(value) => `\u20B9${value.toLocaleString()}`}
-                    // Theme-aware tooltip styling
                     contentStyle={{ 
                       backgroundColor: theme.palette.background.paper,
                       borderColor: theme.palette.divider,
@@ -219,7 +208,7 @@ function AnalyticsSection() {
 
                   <Bar
                     dataKey="amount"
-                    fill={theme.palette.primary.main} // Theme-aware bar color
+                    fill={theme.palette.primary.main} 
                     radius={[6, 6, 0, 0]}
                     barSize={45}
                   />
@@ -233,14 +222,13 @@ function AnalyticsSection() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: theme.palette.text.secondary // Theme-aware fallback text
+                  color: theme.palette.text.secondary 
                 }}
               >
                 No expense data available
               </div>
             )}
           </div>
-
         </Paper>
       </Box>
     </Box>

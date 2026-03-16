@@ -3,7 +3,8 @@ import { useDispatch, useSelector } from "react-redux";
 import dayjs from "dayjs";
 import { 
   Container, Box, Typography, Button, IconButton, Paper, 
-  Avatar, Stack, Divider, MenuItem, TextField, Popover, InputAdornment, Pagination 
+  Avatar, Stack, Divider, MenuItem, TextField, Popover, InputAdornment, Pagination,
+  CircularProgress // Added CircularProgress
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import AddIcon from '@mui/icons-material/Add';
@@ -47,6 +48,9 @@ const Transaction = () => {
   const [descModalOpen, setDescModalOpen] = useState(false);
   const [selectedDescription, setSelectedDescription] = useState("");
   const [anchorEl, setAnchorEl] = useState(null);
+  
+  // Loading States
+  const [isExporting, setIsExporting] = useState(false); // Added for export
 
   const openDatePopover = Boolean(anchorEl);
 
@@ -59,7 +63,7 @@ const Transaction = () => {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // 2. Fetch Transactions (Triggers on Date, Page, Debounced Search, or Category change)
+  // 2. Fetch Transactions
   useEffect(() => {
     if (userId && startDate && endDate) {
       dispatch(fetchTransactions({ 
@@ -91,12 +95,12 @@ const Transaction = () => {
   // Handlers
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
-    setPage(1); // Reset to first page on search
+    setPage(1); 
   };
 
   const handleCategoryChange = (e) => {
     setSelectedCategory(e.target.value);
-    setPage(1); // Reset to first page on category filter
+    setPage(1); 
   };
 
   const handleDelete = async (txnId) => {
@@ -112,6 +116,7 @@ const Transaction = () => {
   };
 
   const handleExportCsv = async () => {
+    setIsExporting(true); // Start loading
     try {
       const response = await api.get(`/transactions/exportcsv/${userId}`, {
         params: { startDate, endDate },
@@ -130,6 +135,8 @@ const Transaction = () => {
     } catch (error) {
       console.error("Error downloading CSV", error);
       alert("Failed to export CSV. Please try again.");
+    } finally {
+      setIsExporting(false); // Stop loading
     }
   };
 
@@ -148,11 +155,12 @@ const Transaction = () => {
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Button 
               variant="outlined" 
-              startIcon={<FileDownloadIcon />} 
+              startIcon={isExporting ? <CircularProgress size={20} color="inherit" /> : <FileDownloadIcon />} 
               onClick={handleExportCsv}
+              disabled={isExporting}
               sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, px: 3 }}
             >
-              Export CSV
+              {isExporting ? "Exporting..." : "Export CSV"}
             </Button>
 
             <Button 
@@ -218,7 +226,7 @@ const Transaction = () => {
               color: 'text.primary', borderColor: 'divider', px: 3, py: 1
             }}
           >
-            {dayjs(startDate).format("MMM D, YYYY")} — {dayjs(endDate).format("MMM D, YYYY")}
+            {dayjs(startDate).format("MMM D, YYYY")} - {dayjs(endDate).format("MMM D, YYYY")}
           </Button>
 
           <Popover 
@@ -243,9 +251,9 @@ const Transaction = () => {
 
         {/* Content States */}
         {status === "loading" && (
-          <Typography color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>
-            Loading records...
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 10 }}>
+            <CircularProgress size={50} thickness={4} />
+          </Box>
         )}
 
         {Object.keys(groupedTransactions).length === 0 && status !== "loading" && (
@@ -257,80 +265,82 @@ const Transaction = () => {
         )}
 
         {/* Transactions list */}
-        <Stack spacing={4}>
-          {Object.entries(groupedTransactions).map(([date, txns]) => (
-            <Box key={date}>
-              <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ mb: 1.5, ml: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {date} —————————————————————————————————————————————————
-              </Typography>
-              
-              <Paper sx={{ borderRadius: 3, overflow: 'hidden', border: (theme) => `1px solid ${theme.palette.divider}` }} elevation={0}>
-                {txns.map((txn, index) => {
-                  const isIncome = txn.type === "income";
-                  const catName = txn.category?.name || "Uncategorized";
+        {status !== "loading" && (
+          <Stack spacing={4}>
+            {Object.entries(groupedTransactions).map(([date, txns]) => (
+              <Box key={date}>
+                <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ mb: 1.5, ml: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {date} -------------------------------------------------
+                </Typography>
+                
+                <Paper sx={{ borderRadius: 3, overflow: 'hidden', border: (theme) => `1px solid ${theme.palette.divider}` }} elevation={0}>
+                  {txns.map((txn, index) => {
+                    const isIncome = txn.type === "income";
+                    const catName = txn.category?.name || "Uncategorized";
 
-                  return (
-                    <React.Fragment key={txn._id}>
-                      <Box sx={{ 
-                        p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-                        transition: 'background-color 0.2s',
-                        '&:hover': { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03) } 
-                      }}>
-                        
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
-                          <Avatar sx={{ 
-                            width: 48, height: 48,
-                            bgcolor: (theme) => alpha(theme.palette[isIncome ? 'success' : 'error'].main, 0.1), 
-                            color: isIncome ? 'success.main' : 'error.main' 
-                          }}>
-                            {isIncome ? <TrendingUpIcon /> : <TrendingDownIcon />}
-                          </Avatar>
-                          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                            <Typography variant="subtitle1" fontWeight={700}>
-                              {txn.title}
-                            </Typography>
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                              <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
-                                {catName}
+                    return (
+                      <React.Fragment key={txn._id}>
+                        <Box sx={{ 
+                          p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                          transition: 'background-color 0.2s',
+                          '&:hover': { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03) } 
+                        }}>
+                          
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                            <Avatar sx={{ 
+                              width: 48, height: 48,
+                              bgcolor: (theme) => alpha(theme.palette[isIncome ? 'success' : 'error'].main, 0.1), 
+                              color: isIncome ? 'success.main' : 'error.main' 
+                            }}>
+                              {isIncome ? <TrendingUpIcon /> : <TrendingDownIcon />}
+                            </Avatar>
+                            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                              <Typography variant="subtitle1" fontWeight={700}>
+                                {txn.title}
                               </Typography>
-                              {txn.description && (
-                                <Button
-                                  size="small"
-                                  sx={{ textTransform: "none", fontSize: "0.7rem", minWidth: "auto", color: "primary.main" }}
-                                  onClick={() => { setSelectedDescription(txn.description); setDescModalOpen(true); }}
-                                >
-                                  • View description
-                                </Button>
-                              )}
+                              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
+                                  {catName}
+                                </Typography>
+                                {txn.description && (
+                                  <Button
+                                    size="small"
+                                    sx={{ textTransform: "none", fontSize: "0.7rem", minWidth: "auto", color: "primary.main" }}
+                                    onClick={() => { setSelectedDescription(txn.description); setDescModalOpen(true); }}
+                                  >
+                                    View description
+                                  </Button>
+                                )}
+                              </Box>
+                            </Box>
+                          </Box>
+
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                            <Typography variant="h6" fontWeight={800} color={isIncome ? 'success.main' : 'error.main'}>
+                              {isIncome ? "+" : "-"}&#8377;{txn.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 0.5 }}>
+                              <IconButton size="small" onClick={() => { setEditData(txn); setIsModalOpen(true); }}>
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton size="small" onClick={() => handleDelete(txn._id)}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
                             </Box>
                           </Box>
                         </Box>
-
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                          <Typography variant="h6" fontWeight={800} color={isIncome ? 'success.main' : 'error.main'}>
-                            {isIncome ? "+" : "-"}&#8377;{txn.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 0.5 }}>
-                            <IconButton size="small" onClick={() => { setEditData(txn); setIsModalOpen(true); }}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton size="small" onClick={() => handleDelete(txn._id)}>
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        </Box>
-                      </Box>
-                      {index !== txns.length - 1 && <Divider />}
-                    </React.Fragment>
-                  );
-                })}
-              </Paper>
-            </Box>
-          ))}
-        </Stack>
+                        {index !== txns.length - 1 && <Divider />}
+                      </React.Fragment>
+                    );
+                  })}
+                </Paper>
+              </Box>
+            ))}
+          </Stack>
+        )}
 
         {/* Pagination */}
-        {totalPages > 1 && (
+        {totalPages > 1 && status !== "loading" && (
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
             <Pagination 
               count={totalPages} 
