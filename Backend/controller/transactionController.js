@@ -149,7 +149,8 @@ export const editTransaction = async (req, res) => {
     try {
         const transactionId = req.params.id;
         console.log("===================transactionId when editing trasnsaction --- ",transactionId);
-        const {amount, type, category, date, description, title ,userId} = req.body;
+        const userId = req.user.userId;
+        const {amount, type, category, date, description, title} = req.body;
 
         // category lean
         let categoryDoc = await categoryModel.findOne({ name: category, userId }).lean();
@@ -188,10 +189,10 @@ export const deleteTransaction = async (req, res) => {
     console.log("delete transaction api called",req.params);
   try {
     const  transactionId  = req.params.id;
-
+    const userId = req.user.userId;
     // lean
     const deleted = await transactionModel.findByIdAndUpdate(
-      transactionId,
+      { _id: transactionId, userId: userId },
       { isDeleted: true },
       { new: true }
     ).lean();

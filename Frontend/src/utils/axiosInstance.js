@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+//backed url = VITE_API_URL
 const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
