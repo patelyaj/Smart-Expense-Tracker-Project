@@ -149,20 +149,29 @@ export const editTransaction = async (req, res) => {
     try {
         const transactionId = req.params.id;
         console.log("===================transactionId when editing trasnsaction --- ",transactionId);
-        const {amount, type, category, date, description, title} = req.body;
+        const {amount, type, category, date, description, title ,userId} = req.body;
 
         // category lean
-        let categoryDoc = await categoryModel.findOne({ name: category, userId: req.user.userId }).lean();
+        let categoryDoc = await categoryModel.findOne({ name: category, userId }).lean();
         if (!categoryDoc) {
-            categoryDoc = await categoryModel.create({ name: category, type, userId: req.user.userId });
+            categoryDoc = await categoryModel.create({ name: category, type, userId });
         }
 
         console.log("categoryDoc when editing trasnsaction . ihace to see id it returns",categoryDoc);
 
         // lean
-        const edited = await transactionModel.findByIdAndUpdate(transactionId, {
-            amount, type, category: categoryDoc._id, date, description ,title
-        }, {new: true}).populate('category', 'name type').lean();
+        const edited = await transactionModel.findByIdAndUpdate(
+            transactionId, 
+            { 
+                amount, 
+                type, 
+                category: categoryDoc._id, 
+                date, 
+                description, 
+                title 
+            }, 
+            { new: true }
+        ).populate('category', 'name type').lean();
 
         if(!edited) return res.status(404).json({message:"Transaction not found"});
 

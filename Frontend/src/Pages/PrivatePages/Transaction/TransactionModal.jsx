@@ -6,28 +6,22 @@ import {
   Button, TextField, MenuItem, Autocomplete, Stack
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers";
-// Import toast for notifications
 import { toast } from "react-toastify";
 
 import {
   addTransaction, editTransaction, fetchTransactions, fetchIncomeExpense
 } from "../../../redux/Features/transactionSlice";
-import { fetchCategories } from "../../../redux/Features/categorySlice"; // IMPORT THIS
-
-// Import budget progress to calculate alerts
+import { fetchCategories } from "../../../redux/Features/categorySlice";
 import { fetchBudgetProgress } from "../../../redux/Features/budgetSlice";
 
 const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, startDate, endDate }) => {
   const dispatch = useDispatch();
 
   const { categories } = useSelector((state) => state.category);
-
-  // Retrieve data needed for smart alerts
   const { income, expense } = useSelector((state) => state.transaction);
   const { progressBudgets } = useSelector((state) => state.budget);
 
   useEffect(() => {
-    // Fetch categories when the modal opens
     dispatch(fetchCategories());
   }, [dispatch]);
 
@@ -42,13 +36,17 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
     description: existingData?.description || ""
   });
 
-  // if user switches type refetch category suggestions to match the type
   const categorySuggestions = categories
     .filter(cat => cat.type === formData.type)
     .map(cat => cat.name);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validation: Prevent zero or negative amounts
+    if (Number(formData.amount) <= 0) {
+      return toast.error("Please enter an amount greater than zero.");
+    }
 
     const payload = {
       ...formData,
@@ -60,82 +58,70 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
       if (mode === "add") {
         await dispatch(addTransaction(payload)).unwrap();
 
-        // Smart alerts logic begins here
+        // --- Smart Alerts Logic ---
         const amountNum = Number(formData.amount);
-
         if (formData.type === "income") {
-          toast.success(`Awesome! You just added \u20B9${amountNum} to your income!`);
-
+          toast.success(`Awesome! Added ₹${amountNum} to income!`);
         } else if (formData.type === "expense") {
-          
           let budgetAlertFired = false;
-          
-          // Get all budgets that match the selected category
           const matchingBudgets = progressBudgets?.filter(b => b.category?.name === formData.category);
 
-          if (matchingBudgets && matchingBudgets.length > 0) {
-            // Loop through each matching budget to check its individual limit
+          if (matchingBudgets?.length > 0) {
             matchingBudgets.forEach(budget => {
               const newSpent = budget.spent + amountNum;
               const percentage = newSpent / budget.limit;
-              
-              // Capitalize the period name for the message
               const periodText = budget.period ? budget.period.charAt(0).toUpperCase() + budget.period.slice(1) : "";
 
               if (percentage >= 1) {
-                toast.error(`Red Alert: You exceeded your ${periodText} ${formData.category} budget!`);
+                toast.error(`Red Alert: Exceeded your ${periodText} ${formData.category} budget!`);
                 budgetAlertFired = true;
               } else if (percentage >= 0.9) {
-                toast.warn(`Careful! You've used over 90% of your ${periodText} ${formData.category} budget.`);
+                toast.warn(`Careful! Over 90% of your ${periodText} ${formData.category} budget used.`);
                 budgetAlertFired = true;
-              } else if (percentage >= 0.5) {
-                toast.info(`You've spent half of your ${periodText} ${formData.category} budget.`);
               }
             });
           }
 
           if (income > 0 && !budgetAlertFired) {
-             const newTotalExpense = expense + amountNum;
-             const overallPct = newTotalExpense / income;
-
-             if (overallPct >= 0.9) {
-               toast.error(`Warning: You have spent 90% of your total income this month!`);
-             } else if (overallPct >= 0.5) {
-               toast.info(`Heads up: You have spent 50% of your earned income.`);
-             } else {
-               toast.success("Transaction added successfully.");
-             }
+            const overallPct = (expense + amountNum) / income;
+            if (overallPct >= 0.9) toast.error(`Warning: Spent 90% of total income this month!`);
+            else toast.success("Transaction added successfully.");
           } else if (!budgetAlertFired) {
-             toast.success("Transaction added successfully.");
+            toast.success("Transaction added successfully.");
           }
         }
-        // Smart alerts logic ends here
-
       } else {
-        await dispatch(editTransaction({ transactionId: existingData._id, updatedData: payload })).unwrap();
-        // Added success toast for edit updates
+        // Edit Mode
+        await dispatch(editTransaction({ 
+          transactionId: existingData._id, 
+          updatedData: payload 
+        })).unwrap();
         toast.success("Transaction updated successfully.");
       }
 
-      // Refresh Data
-      dispatch(fetchTransactions({ userId, startDate, endDate }));
+      // --- REFRESH DATA ---
+      // Resetting to page 1 and clearing filters ensures the user sees their new/edited data immediately
+      dispatch(fetchTransactions({ 
+        userId, 
+        startDate, 
+        endDate, 
+        page: 1, 
+        limit: 10,
+        search: "", 
+        category: "all" 
+      }));
       
       dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
-      
-      // Update budgets to reflect the new transaction
       dispatch(fetchBudgetProgress(userId));
-
-      // 3. Refetch categories just in case they added a brand new one in the FreeSolo input!
       dispatch(fetchCategories());
       
       onClose();
     } catch (error) {
-      console.error("Failed to save transaction", error);
-      // Added error toast
-      toast.error("Failed to save transaction.");
+      console.error("Save Error:", error);
+      toast.error(error?.message || "Failed to save transaction.");
     }
   };
-  
+
   return (
     <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
       <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
@@ -157,13 +143,12 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
               <MenuItem value="income">Income</MenuItem>
             </TextField>
 
-              <TextField
-                  type="text"
-                  label="Title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  fullWidth required
-                />
+            <TextField
+              label="Title"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              fullWidth required
+            />
                 
             <TextField
               type="number"
@@ -171,17 +156,16 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
               value={formData.amount}
               onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
               fullWidth required
-              InputProps={{ startAdornment: <span style={{ marginRight: 8 }}>&#8377;</span> }}
+              InputProps={{ startAdornment: <span style={{ marginRight: 8 }}>₹</span> }}
             />
 
-            {/* The dropdown now feeds off the database! */}
             <Autocomplete
               freeSolo
               options={categorySuggestions}
               value={formData.category}
-              onInputChange={(event, newInputValue) => {
-                setFormData({ ...formData, category: newInputValue });
-              }}
+              // onChange handles dropdown selection, onInputChange handles manual typing
+              onChange={(event, newValue) => setFormData({ ...formData, category: newValue || "" })}
+              onInputChange={(event, newInputValue) => setFormData({ ...formData, category: newInputValue })}
               renderInput={(params) => (
                 <TextField {...params} label="Category" placeholder="Select or type new..." required />
               )}
@@ -190,19 +174,9 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
             <DatePicker
               label="Date"
               value={dayjs(formData.date)}
-              onChange={(newDate) =>
-                setFormData({
-                  ...formData,
-                  date: newDate.format("YYYY-MM-DD"),
-                })
-              }
+              onChange={(newDate) => setFormData({ ...formData, date: newDate.format("YYYY-MM-DD") })}
               disableFuture
-              slotProps={{
-                textField: {
-                  fullWidth: true,
-                  required: true,
-                },
-              }}
+              slotProps={{ textField: { fullWidth: true, required: true } }}
             />
 
             <TextField
