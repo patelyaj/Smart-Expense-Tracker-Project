@@ -147,6 +147,7 @@ export const loginUser = async (req, res) => {
             mobileno: user.mobileno,
         })
     } catch (error) {
+        console.log("error",err)
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
@@ -167,7 +168,7 @@ export const logoutUser = async (req, res) => {
         res.status(200).json({ message: "User logged out successfully" });
 
     } catch (error) {
-        res.status(500).json('internal server error logout failed');
+        res.status(500).json('internal server error logout failed',error);
     }
 }
 
