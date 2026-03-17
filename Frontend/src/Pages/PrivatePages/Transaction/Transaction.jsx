@@ -4,7 +4,7 @@ import dayjs from "dayjs";
 import { 
   Container, Box, Typography, Button, IconButton, Paper, 
   Avatar, Stack, Divider, MenuItem, TextField, Popover, InputAdornment, Pagination,
-  CircularProgress // Added CircularProgress
+  CircularProgress
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import AddIcon from '@mui/icons-material/Add';
@@ -22,16 +22,14 @@ import DashboardDatePicker from "../../../Component/DashboardDatePicker";
 import { Dialog, DialogTitle, DialogContent } from "@mui/material";
 import api from "../../../utils/axiosInstance";
 
-// Redux Actions
-import { fetchTransactions, deleteTransaction, fetchIncomeExpense } from "../../../redux/Features/transactionSlice";
+import { fetchTransactions, deleteTransaction, markTransactionsStale } from "../../../redux/Features/transactionSlice";
 import { fetchCategories } from "../../../redux/Features/categorySlice";
-import { fetchBudgetProgress } from "../../../redux/Features/budgetSlice";
 
 const Transaction = () => {
   const dispatch = useDispatch();
   const userId = JSON.parse(localStorage.getItem("userInfo"))?._id;
   
-  const { transactions, status, totalPages } = useSelector((state) => state.transaction);
+  const { transactions, status, totalPages, isTransactionsStale } = useSelector((state) => state.transaction);
   const { categories } = useSelector((state) => state.category);
 
   // Filter States
@@ -50,7 +48,7 @@ const Transaction = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   
   // Loading States
-  const [isExporting, setIsExporting] = useState(false); // Added for export
+  const [isExporting, setIsExporting] = useState(false); 
 
   const openDatePopover = Boolean(anchorEl);
 
@@ -59,29 +57,28 @@ const Transaction = () => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchQuery);
     }, 500);
-
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // 2. Fetch Transactions
+  // 2. Fetch Categories (ONLY if we don't already have them)
   useEffect(() => {
-    if (userId && startDate && endDate) {
-      dispatch(fetchTransactions({ 
-        userId, 
-        startDate, 
-        endDate, 
-        page, 
-        limit: 10,
-        search: debouncedSearch,
-        category: selectedCategory 
-      }));
+    if (categories.length === 0) {
       dispatch(fetchCategories()); 
-      dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
-      dispatch(fetchBudgetProgress(userId));
     }
-  }, [startDate, endDate, page, debouncedSearch, selectedCategory, dispatch, userId]);
+  }, [dispatch, categories.length]);
 
-  // 3. Group transactions by date for display
+  // 3. Fetch Transactions
+  useEffect(() => {
+    if (userId && startDate && endDate && isTransactionsStale) {
+      dispatch(fetchTransactions({ 
+        userId, startDate, endDate, page, limit: 10,
+        search: debouncedSearch, category: selectedCategory 
+      }));
+    }
+    //  Notice we are NO LONGER fetching budget or income/expense here!
+  }, [startDate, endDate, page, debouncedSearch, selectedCategory, dispatch, userId,isTransactionsStale]);
+
+  // 4. Group transactions by date
   const groupedTransactions = useMemo(() => {
     const groups = {};
     transactions.forEach((txn) => {
@@ -95,30 +92,30 @@ const Transaction = () => {
   // Handlers
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
+    dispatch(markTransactionsStale());
     setPage(1); 
   };
 
   const handleCategoryChange = (e) => {
     setSelectedCategory(e.target.value);
+    dispatch(markTransactionsStale());
     setPage(1); 
   };
 
+  //  HIGHLY OPTIMIZED DELETE
   const handleDelete = async (txnId) => {
     if (window.confirm("Are you sure you want to delete this transaction?")) {
-      await dispatch(deleteTransaction(txnId)).unwrap();
-      dispatch(fetchTransactions({ 
-        userId, startDate, endDate, page, limit: 10, 
-        search: debouncedSearch, category: selectedCategory 
-      }));
-      dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
-      dispatch(fetchBudgetProgress(userId));
+      // Just dispatch the delete action. 
+      // Your Redux slice already filters this out of the 'transactions' array natively.
+      // NO refetching needed! The UI will update instantly.
+      await dispatch(deleteTransaction(txnId));
     }
   };
 
   const handleExportCsv = async () => {
-    setIsExporting(true); // Start loading
+    setIsExporting(true);
     try {
-      const response = await api.get(`/transactions/exportcsv/${userId}`, {
+      const response = await api.get(`/transactions/export-csv`, {
         params: { startDate, endDate },
         responseType: 'blob',
         withCredentials: true
@@ -136,7 +133,7 @@ const Transaction = () => {
       console.error("Error downloading CSV", error);
       alert("Failed to export CSV. Please try again.");
     } finally {
-      setIsExporting(false); // Stop loading
+      setIsExporting(false); 
     }
   };
 
@@ -243,6 +240,7 @@ const Transaction = () => {
                 setStartDate(newStart);
                 setEndDate(newEnd);
                 setPage(1);
+                dispatch(markTransactionsStale());
               }}
               onClose={() => setAnchorEl(null)} 
             />
@@ -345,7 +343,10 @@ const Transaction = () => {
             <Pagination 
               count={totalPages} 
               page={page} 
-              onChange={(e, value) => setPage(value)} 
+              onChange={(e, value) => {
+                setPage(value);
+                dispatch(markTransactionsStale())
+              }} 
               color="primary" 
               size="large"
             />

@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import React from "react";
+import { useSelector } from "react-redux";
 import {
   PieChart,
   Pie,
@@ -15,27 +15,13 @@ import {
 
 import { Box, Paper, Typography, useTheme, CircularProgress } from "@mui/material";
 
-import { fetchExpenseByCategory } from "../../redux/Features/transactionSlice";
-
 function AnalyticsSection() {
-  const dispatch = useDispatch();
-  
   const theme = useTheme();
 
   // Extract status for loading states
   const { income, expense, expenseChartData, status } = useSelector(
     (state) => state.transaction
   );
-
-  const { startDate, endDate } = useSelector((state) => state.date);
-
-  const userId = JSON.parse(localStorage.getItem("userInfo"))?._id;
-
-  useEffect(() => {
-    if (userId) {
-      dispatch(fetchExpenseByCategory({ userId, startDate, endDate }));
-    }
-  }, [dispatch, userId, startDate, endDate]);
 
   const incomeExpenseData = [
     { name: "Income", value: income || 0 },

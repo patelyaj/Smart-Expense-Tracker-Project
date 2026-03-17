@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Container, Typography, Button, Popover } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
@@ -12,18 +12,29 @@ import FinancialSummary from '../../../Component/DashboardComponents/FinancialSu
 import AnalyticsSection from '../../../Component/DashboardComponents/AnalyticsSection';
 import DashboardDatePicker from '../../../Component/DashboardDatePicker';
 import { setDateRange } from '../../../redux/Features/dateSlice';
+import { fetchDashboardSummary,markDashboardStale } from '../../../redux/Features/transactionSlice';
 
 const Dashboard = () => {
   const dispatch = useDispatch();
   const { startDate, endDate } = useSelector((state) => state.date);
+  const { isDashboardStale } = useSelector((state) => state.transaction); // Get the flag
   const [anchorEl, setAnchorEl] = useState(null);
   const openDatePopover = Boolean(anchorEl);
+
+  const userId = JSON.parse(localStorage.getItem("userInfo"))?._id;
+
+  // ONE SINGLE FETCH FOR THE WHOLE DASHBOARD
+  useEffect(() => {
+    if (userId && startDate && endDate && isDashboardStale) {
+      dispatch(fetchDashboardSummary({ startDate, endDate }));
+    }
+  }, [dispatch, userId, startDate, endDate,isDashboardStale]);
 
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', pb: 10 }}>
       <Navbar />
 
-    <Container maxWidth={false} sx={{ mt: 4 }}>        
+      <Container maxWidth={false} sx={{ mt: 4 }}>        
 
         {/* TOP HEADER: Title Left, Date Dropdown Right */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
@@ -71,6 +82,7 @@ const Dashboard = () => {
               initialEndDate={endDate}
               onApply={(newStart, newEnd) => {
                 dispatch(setDateRange({ startDate: newStart, endDate: newEnd }));
+                dispatch(markDashboardStale());
               }}
               onClose={() => setAnchorEl(null)} 
             />
@@ -78,10 +90,10 @@ const Dashboard = () => {
 
         </Box>
 
-        {/*  EXACT POSITIONING: Income -> Balance -> Expense */}
+        {/* EXACT POSITIONING: Income -> Balance -> Expense */}
         <FinancialSummary />
 
-        {/*  Analytics Section */}
+        {/* Analytics Section */}
         <AnalyticsSection />
 
       </Container>

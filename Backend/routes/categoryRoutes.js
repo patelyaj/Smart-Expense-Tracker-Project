@@ -5,6 +5,6 @@ import e from "express";
 
 const router = express.Router();
 
-router.get("/fetchcategories", verifyToken, fetchCategories);
+router.get("/", verifyToken, fetchCategories);
 
 export default router;

@@ -1,32 +1,17 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Card, CardContent, Typography, Box, Avatar, CircularProgress } from "@mui/material";
 
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 
-import { useDispatch, useSelector } from "react-redux";
-import { fetchIncomeExpense } from "../../redux/Features/transactionSlice";
+import { useSelector } from "react-redux";
 import { alpha } from "@mui/material/styles";
 
 const FinancialSummary = () => {
-  const dispatch = useDispatch();
-
-  const userId = localStorage.getItem("userInfo")
-    ? JSON.parse(localStorage.getItem("userInfo"))._id
-    : null;
-
   const { income, expense, netBalance, status } = useSelector(
     (state) => state.transaction
   );
-
-  const { startDate, endDate } = useSelector((state) => state.date);
-
-  useEffect(() => {
-    if (userId) {
-      dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
-    }
-  }, [startDate, endDate, dispatch, userId]);
 
   const cardStyle = {
     flex: 1,
@@ -62,7 +47,7 @@ const FinancialSummary = () => {
       sx={{
         display: "flex",
         flexWrap: "wrap", 
-        gap: 6,              // ⭐ space between cards
+        gap: 6,              // space between cards
         justifyContent: "space-between",
         mb: 5,
       }}

@@ -1,14 +1,25 @@
 import express from "express";
-import { addTransaction, deleteTransaction, editTransaction, exportTransactionsCsv, fetchIncomeExpense, fetchTransactions , fetchExpenseByCategory } from "../controller/transactionController.js";
 import { verifyToken } from "../middlewares/authMiddleware.js";
+import { addTransaction, deleteTransaction, editTransaction, exportTransactionsCsv, fetchTransactions , fetchDashboardSummary } from "../controller/transactionController.js";
 
 const router = express.Router();
-router.get('/exportcsv/:id', verifyToken,exportTransactionsCsv);
-router.get('/fetchtransactions/:id',verifyToken ,fetchTransactions);
-router.post('/addtransaction',verifyToken,addTransaction);
-router.patch('/edittransaction/:id',verifyToken,editTransaction);
-router.delete('/deletetransaction/:id',verifyToken,deleteTransaction);
-router.get('/fetchincomeexpense/:id',verifyToken,fetchIncomeExpense);
-router.get('/fetchexpensebycategory/:id',verifyToken ,fetchExpenseByCategory);
+
+// can be merged i think 
+router.get('/',verifyToken ,fetchTransactions);
+
+//  merged for both on dashboard
+// router.get('/balance-income-expense',verifyToken,fetchIncomeExpense); 
+// router.get('/fetchexpensebycategory/:id',verifyToken ,fetchExpenseByCategory);
+// router.get('/',verifyToken,fetchDashboardSummary);
+
+//////////////////  sure separate api needed
+// get transaction csv of a user
+router.get('/export-csv', verifyToken,exportTransactionsCsv);
+// add
+router.post('/',verifyToken,addTransaction);
+// edit
+router.patch('/:id',verifyToken,editTransaction);
+//delete
+router.delete('/:id',verifyToken,deleteTransaction);
 
 export default router;

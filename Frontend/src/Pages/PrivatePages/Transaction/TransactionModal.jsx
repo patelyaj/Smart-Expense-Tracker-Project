@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import dayjs from "dayjs";
 import {
@@ -9,12 +9,11 @@ import { DatePicker } from "@mui/x-date-pickers";
 import { toast } from "react-toastify";
 
 import {
-  addTransaction, editTransaction, fetchTransactions, fetchIncomeExpense
+  addTransaction, editTransaction
 } from "../../../redux/Features/transactionSlice";
-import { fetchCategories } from "../../../redux/Features/categorySlice";
-import { fetchBudgetProgress } from "../../../redux/Features/budgetSlice";
+// import { fetchCategories } from "../../../redux/Features/categorySlice";
 
-const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, startDate, endDate }) => {
+const TransactionModal = ({ onClose, mode = "add", existingData = null, userId }) => {
   const dispatch = useDispatch();
 
   const { categories } = useSelector((state) => state.category);
@@ -24,9 +23,9 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
   // Added local loading state for submission
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    dispatch(fetchCategories());
-  }, [dispatch]);
+  // useEffect(() => {
+  //   dispatch(fetchCategories());
+  // }, [dispatch]);
 
   const existingCategoryName = existingData?.category?.name || existingData?.category || "";
 
@@ -101,19 +100,20 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
         toast.success("Transaction updated successfully.");
       }
 
-      dispatch(fetchTransactions({ 
-        userId, 
-        startDate, 
-        endDate, 
-        page: 1, 
-        limit: 10,
-        search: "", 
-        category: "all" 
-      }));
+      // dispatch(fetchTransactions({ 
+      //   userId, 
+      //   startDate, 
+      //   endDate, 
+      //   page: 1, 
+      //   limit: 10,
+      //   search: "", 
+      //   category: "all" 
+      // }));
       
-      dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
-      dispatch(fetchBudgetProgress(userId));
-      dispatch(fetchCategories());
+      // dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
+      // dispatch(fetchBudgetProgress(userId));
+      // dispatch(fetchCategories());
+
       
       onClose();
     } catch (error) {
@@ -175,7 +175,13 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId, 
             <DatePicker
               label="Date"
               value={dayjs(formData.date)}
-              onChange={(newDate) => setFormData({ ...formData, date: newDate.format("YYYY-MM-DD") })}
+              onChange={(newDate) => {
+                // Check if newDate exists and is valid before formatting
+                const formattedDate = newDate && newDate.isValid() 
+                  ? newDate.format("YYYY-MM-DD") 
+                  : "";
+                setFormData({ ...formData, date: formattedDate });
+              }}
               disableFuture
               slotProps={{ textField: { fullWidth: true, required: true } }}
             />

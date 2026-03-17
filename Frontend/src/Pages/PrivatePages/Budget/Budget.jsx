@@ -8,7 +8,7 @@ import { alpha } from "@mui/material/styles";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
-import { fetchBudgetProgress, createBudget } from "../../../redux/Features/budgetSlice";
+import { fetchBudget, createBudget } from "../../../redux/Features/budgetSlice";
 import { fetchCategories } from "../../../redux/Features/categorySlice"; 
 import dayjs from "dayjs";
 
@@ -18,7 +18,7 @@ function Budget() {
   const userId = JSON.parse(localStorage.getItem("userInfo"))?._id;
 
   // Extracted status to handle page load states
-  const { progressBudgets, status } = useSelector((state) => state.budget);
+  const { progressBudgets, status, isBudgetStale } = useSelector((state) => state.budget);
   const budgetsList = progressBudgets || [];
   
   const { categories } = useSelector((state) => state.category);
@@ -31,11 +31,11 @@ function Budget() {
   const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
-    if (userId) {
-      dispatch(fetchBudgetProgress(userId));
+    if (userId && isBudgetStale) {
+      dispatch(fetchBudget()); 
       dispatch(fetchCategories()); 
     }
-  }, [dispatch, userId]);
+  }, [dispatch, userId, isBudgetStale]);
 
   const expenseCategories = categories.filter(c => c.type === 'expense');
 
@@ -68,7 +68,7 @@ function Budget() {
         endDate
       })).unwrap(); // Use unwrap if supported in your slice
       
-      await dispatch(fetchBudgetProgress(userId));
+      // await dispatch(fetchBudgetProgress(userId));
       setLimit(""); 
     } catch (error) {
       console.error("Failed to create budget", error);

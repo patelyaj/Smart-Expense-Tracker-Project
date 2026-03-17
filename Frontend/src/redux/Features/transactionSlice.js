@@ -1,25 +1,12 @@
 import { createAsyncThunk ,createSlice} from "@reduxjs/toolkit";
 import api from "../../utils/axiosInstance";
 
-const fetchExpenseByCategory = createAsyncThunk(
-    'transaction/fetchExpenseByCategory',
-    async ({userId, startDate, endDate}, { rejectWithValue }) => {
-        try {
-            const response = await api.get(`/transactions/fetchexpensebycategory/${userId}`, {params:{startDate,endDate}, withCredentials: true });
-            return response.data;
-        } catch (error) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch chart data');
-        }
-    }
-);
-
 // redux/Features/transactionSlice.js
-
 const fetchTransactions = createAsyncThunk(
     'transaction/fetchTransactions',
-    async ({userId, startDate, endDate, page = 1, limit = 10, search = "", category = "all"}, { rejectWithValue }) => {
+    async ({startDate, endDate, page = 1, limit = 10, search = "", category = "all"}, { rejectWithValue }) => {
         try {
-            const response = await api.get(`/transactions/fetchtransactions/${userId}`, {
+            const response = await api.get(`/transactions`, {
                 params: { startDate, endDate, page, limit, search, category }, // Pass them here
                 withCredentials: true 
             });
@@ -35,7 +22,7 @@ const addTransaction = createAsyncThunk(
     'transaction/addTransaction',
     async (transactionData, { rejectWithValue }) => { 
         try {
-            const response = await api.post('/transactions/addtransaction', transactionData, { withCredentials: true });
+            const response = await api.post('/transactions', transactionData, { withCredentials: true });
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to add transaction');
@@ -48,7 +35,7 @@ const editTransaction = createAsyncThunk(
     'transaction/editTransaction', 
     async ({ transactionId, updatedData }, { rejectWithValue }) => {
         try {
-            const response = await api.patch(`/transactions/edittransaction/${transactionId}`, updatedData, { withCredentials: true });
+            const response = await api.patch(`/transactions/${transactionId}`, updatedData, { withCredentials: true });
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to edit transaction');
@@ -56,12 +43,13 @@ const editTransaction = createAsyncThunk(
     }
 );
 
+
 // delete transaction
 const deleteTransaction = createAsyncThunk(
     'transaction/deleteTransaction',
     async (transactionId, { rejectWithValue }) => {
         try {
-            const response = await api.delete(`/transactions/deletetransaction/${transactionId}`, { withCredentials: true });
+            const response = await api.delete(`/transactions/${transactionId}`, { withCredentials: true });
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to delete transaction');
@@ -69,16 +57,21 @@ const deleteTransaction = createAsyncThunk(
     }
 );
 
-const fetchIncomeExpense = createAsyncThunk(
-    'transaction/fetchIncomeExpense',
-    async ({userId,startDate,endDate}, { rejectWithValue }) => {
+const fetchDashboardSummary = createAsyncThunk(
+    'transaction/fetchDashboardSummary',
+    async ({ startDate, endDate }, { rejectWithValue }) => {
         try {
-            const response = await api.get(`/transactions/fetchincomeexpense/${userId}`, {params:{startDate,endDate}, withCredentials: true });
+            // Make sure your backend route is mounted correctly (e.g., /api/dashboard)
+            const response = await api.get('/dashboard', { 
+                params: { startDate, endDate }, 
+                withCredentials: true 
+            });
             return response.data;
         } catch (error) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch income and expense summary');
+            return rejectWithValue(error.response?.data?.message || 'Failed to fetch dashboard summary');
         }
-    });
+    }
+);
 
 const transactionSlice = createSlice({
     name: 'transaction',
@@ -91,9 +84,15 @@ const transactionSlice = createSlice({
         netBalance : 0,
         expenseChartData: [],
         totalPages: 1, 
-        currentPage: 1 
+        currentPage: 1,
+        isTransactionsStale: true,
+        isDashboardStale: true,
     },
-    reducers: {  },
+    reducers: {  
+        // We call these when the user changes filters or dates manually!
+        markTransactionsStale: (state) => { state.isTransactionsStale = true; },
+        markDashboardStale: (state) => { state.isDashboardStale = true; }   
+    },
     extraReducers: (builder) => {
         builder
         .addCase(fetchTransactions.pending, (state) => {
@@ -105,6 +104,7 @@ const transactionSlice = createSlice({
             state.transactions = action.payload.transactions; 
             state.totalPages = action.payload.totalPages; // ADDED
             state.currentPage = action.payload.currentPage; // ADDED
+            state.isTransactionsStale = false;
             console.log("Transactions fetched successfully", state.transactions);
         })
         .addCase(fetchTransactions.rejected, (state, action) => {
@@ -117,6 +117,8 @@ const transactionSlice = createSlice({
         ).addCase(addTransaction.fulfilled, (state, action) => {
             state.status = 'succeeded';
             state.transactions.push(action.payload.transaction);
+            state.isTransactionsStale = true; 
+            state.isDashboardStale = true;
         })
         .addCase(addTransaction.rejected, (state, action) => {
             state.status = 'failed';
@@ -131,7 +133,8 @@ const transactionSlice = createSlice({
             if (index !== -1) {
                 state.transactions[index] = { ...action.payload.transaction }
             }
-
+            state.isTransactionsStale = true; 
+            state.isDashboardStale = true;
             console.log("Transaction edited successfully check length",state.transactions);
         })
         .addCase(editTransaction.rejected, (state, action) => {
@@ -145,38 +148,34 @@ const transactionSlice = createSlice({
         .addCase(deleteTransaction.fulfilled, (state, action) => {
             state.status = 'succeeded';
             state.transactions = state.transactions.filter(t => t._id !== action.payload.transactionId);
+            state.isTransactionsStale = true; 
+            state.isDashboardStale = true;
         })
         .addCase(deleteTransaction.rejected, (state, action) => {
             state.status = 'failed';
             state.error = action.payload;
         })
-        .addCase(fetchIncomeExpense.pending, (state) => {
+        .addCase(fetchDashboardSummary.pending, (state) => {
             state.status = 'loading';
         })
-        .addCase(fetchIncomeExpense.fulfilled, (state, action) => {
+        .addCase(fetchDashboardSummary.fulfilled, (state, action) => {
             state.status = 'succeeded';
+            // Map the combined API response directly into your state
             state.income = action.payload.income;
             state.expense = action.payload.expense;
             state.netBalance = action.payload.netBalance;
-            console.log("Income and Expense fetched successfully", state.transactions);
+            state.expenseChartData = action.payload.expenseByCategory; 
+            state.isDashboardStale = false; 
+            
+            console.log("Dashboard summary fetched successfully!");
         })
-        .addCase(fetchIncomeExpense.rejected, (state, action) => {
-            state.status = 'failed';
-            state.error = action.payload;
-        })
-        .addCase(fetchExpenseByCategory.pending, (state) => {
-            state.status = 'loading';
-        })
-        .addCase(fetchExpenseByCategory.fulfilled, (state, action) => {
-            state.status = 'succeeded';
-            state.expenseChartData = action.payload;
-        })
-        .addCase(fetchExpenseByCategory.rejected, (state, action) => {
+        .addCase(fetchDashboardSummary.rejected, (state, action) => {
             state.status = 'failed';
             state.error = action.payload;
         });
     }
 });
 
+export const { markTransactionsStale, markDashboardStale } = transactionSlice.actions;
 export default transactionSlice.reducer;
-export {fetchExpenseByCategory, fetchTransactions ,addTransaction, editTransaction, deleteTransaction, fetchIncomeExpense };
+export {fetchDashboardSummary, fetchTransactions ,addTransaction, editTransaction, deleteTransaction};

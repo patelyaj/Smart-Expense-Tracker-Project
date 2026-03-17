@@ -14,7 +14,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
+  // <StrictMode>
     <Provider store={store}>
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         {/* App will now handle the Theme logic */}
@@ -27,5 +27,5 @@ createRoot(document.getElementById('root')).render(
         />
       </LocalizationProvider>
     </Provider>
-  </StrictMode>,
+  // {/* </StrictMode>, */}
 )

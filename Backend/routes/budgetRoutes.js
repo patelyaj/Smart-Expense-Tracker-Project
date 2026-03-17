@@ -1,25 +1,24 @@
 import express from "express";
 import {
-  fetchBudget,
   createBudget,
-  updateBudget,
   deleteBudget,
-  fetchBudgetProgress,
-  getBudgetDetails
+  getBudgetDetails,
+  fetchBudgetsWithProgress
 } from "../controller/budgetController.js";
 
 import { verifyToken } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/progress/:userId", verifyToken, fetchBudgetProgress);
-router.get("/details/:budgetId", verifyToken, getBudgetDetails);
-router.get("/:userId", verifyToken, fetchBudget);
+// router.get("/progress/:userId", verifyToken, fetchBudgetProgress);
+// router.get("/:userId", verifyToken, fetchBudget);
+router.get('/',verifyToken,fetchBudgetsWithProgress)
 
-router.post("/create", verifyToken, createBudget);
+router.get("/:budgetId", verifyToken, getBudgetDetails);
 
-router.patch("/:budgetId", verifyToken, updateBudget);
-
+// add
+router.post("/", verifyToken, createBudget);
+// delete
 router.delete("/:budgetId", verifyToken, deleteBudget);
 
 export default router;

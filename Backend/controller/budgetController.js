@@ -1,32 +1,58 @@
 import budgetModel from "../model/budgetModel.js";
 import transactionModel from "../model/transactionModel.js";
-// Add this import at the top of the file if it's not there
 import categoryModel from "../model/categoryModel.js";
 
-// Fetch all budgets
-export const fetchBudget = async (req, res) => {
-
+// Fetch all budgets with their current spent progress
+export const fetchBudgetsWithProgress = async (req, res) => {
   try {
+    const userId  = req.user.userId;
 
-    const { userId } = req.params;
-
-    // lean
     const budgets = await budgetModel
       .find({ userId })
       .populate("category", "name")
       .lean();
 
-    res.status(200).json(budgets);
+    const result = [];
+
+    for (const budget of budgets) {
+      const matchStage = {
+        userId: budget.userId,
+        type: "expense",
+        isDeleted: false,
+        date: {
+          $gte: budget.startDate,
+          $lte: budget.endDate
+        }
+      };
+
+      // Only add category to the filter if it's a specific category budget
+      if (budget.category) {
+        matchStage.category = budget.category._id; 
+      }
+
+      const spentAgg = await transactionModel.aggregate([
+        { $match: matchStage },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: "$amount" }
+          }
+        }
+      ]);
+
+      result.push({
+        ...budget,
+        spent: spentAgg[0]?.total || 0
+      });
+    }
+
+    res.status(200).json(result);
 
   } catch (error) {
-
+    console.error("Error fetching budget progress:", error);
     res.status(500).json({ error: error.message });
-
   }
-
 };
-
-
 
 // Create budget
 export const createBudget = async (req, res) => {
@@ -127,60 +153,60 @@ export const deleteBudget = async (req, res) => {
 
 
 // Fetch budget progress
-export const fetchBudgetProgress = async (req, res) => {
+// export const fetchBudgetProgress = async (req, res) => {
 
-  try {
+//   try {
 
-    const { userId } = req.params;
+//     const { userId } = req.params;
 
-    const budgets = await budgetModel
-      .find({ userId })
-      .populate("category", "name")
-      .lean();
+//     const budgets = await budgetModel
+//       .find({ userId })
+//       .populate("category", "name")
+//       .lean();
 
-    const result = [];
+//     const result = [];
 
-    for (const budget of budgets) {
+//     for (const budget of budgets) {
 
-      const match = {
-        userId: budget.userId,
-        type: "expense",
-        isDeleted: false,
-        date: {
-          $gte: budget.startDate,
-          $lte: budget.endDate
-        }
-      };
+//       const match = {
+//         userId: budget.userId,
+//         type: "expense",
+//         isDeleted: false,
+//         date: {
+//           $gte: budget.startDate,
+//           $lte: budget.endDate
+//         }
+//       };
 
-      if (budget.category) {
-        match.category = budget.category._id;
-      }
+//       if (budget.category) {
+//         match.category = budget.category._id;
+//       }
 
-      const spent = await transactionModel.aggregate([
-        { $match: match },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: "$amount" }
-          }
-        }
-      ]);
+//       const spent = await transactionModel.aggregate([
+//         { $match: match },
+//         {
+//           $group: {
+//             _id: null,
+//             total: { $sum: "$amount" }
+//           }
+//         }
+//       ]);
 
-      result.push({
-        ...budget,
-        spent: spent[0]?.total || 0
-      });
+//       result.push({
+//         ...budget,
+//         spent: spent[0]?.total || 0
+//       });
 
-    }
+//     }
 
-    res.status(200).json(result);
+//     res.status(200).json(result);
 
-  } catch (error) {
+//   } catch (error) {
 
-    res.status(500).json({ error: error.message });
+//     res.status(500).json({ error: error.message });
 
-  }
-};
+//   }
+// };
 
 export const getBudgetDetails = async (req, res) => {
   try {
