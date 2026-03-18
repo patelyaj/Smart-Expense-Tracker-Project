@@ -3,7 +3,6 @@ import { BrowserRouter, Route, Routes, Navigate  } from 'react-router-dom'
 import './App.css'
 import PublicRoute from './Pages/routes/PublicRoute'
 import PrivateRoute from './Pages/routes/PrivateRoute'
-import Home from './Pages/PublicPages/Home'
 import Login from './Pages/PublicPages/Login'
 import Signup from './Pages/PublicPages/Signup'
 import Dashboard from './Pages/PrivatePages/Dashboard/Dashboard'
@@ -37,7 +36,6 @@ function App() {
         <Routes>
           <Route element={<PublicRoute/>} >
           <Route path="/" element={<Navigate to="/login" replace />} />
-            {/* <Route path="/" element={<Home/>} /> */}
             <Route path="/login" element={<Login/>} />
             <Route path="/signup" element={<Signup/>} /> 
           </Route>
