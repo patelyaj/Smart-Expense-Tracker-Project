@@ -30,14 +30,25 @@ function Budget() {
   // Loading state for form submission
   const [isCreating, setIsCreating] = useState(false);
 
-  useEffect(() => {
-    if (userId && isBudgetStale) {
-      dispatch(fetchBudget()); 
-      if (!categoriesFetched && categoryStatus === 'idle'){
-            dispatch(fetchCategories())
-          }
-    }
-  }, [dispatch, userId, isBudgetStale,categoryStatus,categoriesFetched]);
+  // useEffect(() => {
+  //   if (userId && isBudgetStale) {
+  //     dispatch(fetchBudget()); 
+  //     if (!categoriesFetched && categoryStatus === 'idle'){
+  //           dispatch(fetchCategories())
+  //         }
+  //   }
+  // }, [dispatch, userId, isBudgetStale,categoryStatus,categoriesFetched]);
+    useEffect(() => {
+      if (userId && isBudgetStale && status === 'idle') {
+        dispatch(fetchBudget());
+      }
+    }, [dispatch, userId, isBudgetStale, status]);
+
+    useEffect(() => {
+      if (!categoriesFetched && categoryStatus === 'idle') {
+        dispatch(fetchCategories());
+      }
+    }, [dispatch, categoriesFetched, categoryStatus]);
 
   const expenseCategories = Array.isArray(categories)
   ? categories.filter(c => c.type === 'expense')

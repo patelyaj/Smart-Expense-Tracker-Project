@@ -129,7 +129,7 @@ const budgetSlice = createSlice({
         state.budgets = state.budgets.filter(
           (b) => b._id !== action.payload.budgetId
         );
-        state.isBudgetStale = true;
+        // state.isBudgetStale = true;
       })
       .addCase(deleteBudget.rejected, (state, action) => {
         state.status = "failed";

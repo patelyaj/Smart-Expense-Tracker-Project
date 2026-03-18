@@ -153,7 +153,7 @@ const transactionSlice = createSlice({
                     return b._id.localeCompare(a._id); 
                 });
             }
-            state.isTransactionsStale = true; 
+            // state.isTransactionsStale = true; 
             state.isDashboardStale = true;
         })
         .addCase(editTransaction.rejected, (state, action) => {
@@ -166,7 +166,7 @@ const transactionSlice = createSlice({
         .addCase(deleteTransaction.fulfilled, (state, action) => {
             state.status = 'succeeded';
             state.transactions = state.transactions.filter(t => t._id !== action.payload.transactionId);
-            state.isTransactionsStale = true; 
+            // state.isTransactionsStale = true; 
             state.isDashboardStale = true;
         })
         .addCase(deleteTransaction.rejected, (state, action) => {
