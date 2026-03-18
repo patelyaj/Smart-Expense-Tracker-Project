@@ -5,7 +5,7 @@ export const fetchCategories = createAsyncThunk(
     'category/fetchCategories',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await api.get('/categories/', { 
+            const response = await api.get('/categories', { 
                 withCredentials: true 
             });
             return response.data;
@@ -33,9 +33,12 @@ const categorySlice = createSlice({
         builder
             .addCase(fetchCategories.pending, (state) => { state.status = 'loading'; })
             .addCase(fetchCategories.fulfilled, (state, action) => {
+                console.log("CATEGORIES TYPE:", typeof action.payload, action.payload);
+                
                 state.status = 'succeeded';
-                state.categories = action.payload;
+                state.categories = Array.isArray(action.payload) ? action.payload : [];
                 state.categoriesFetched = true;
+
             })
             .addCase(fetchCategories.rejected, (state) => { state.status = 'failed'; });
     }

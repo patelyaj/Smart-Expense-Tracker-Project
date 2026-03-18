@@ -20,9 +20,8 @@ function Budget() {
   // Extracted status to handle page load states
   const { progressBudgets, status, isBudgetStale } = useSelector((state) => state.budget);
   const budgetsList = progressBudgets || [];
-  const { categoriesFetched } = useSelector((state)=>state.category);
+  const { categoriesFetched,categories,status: categoryStatus } = useSelector((state)=>state.category);
   
-  const { categories } = useSelector((state) => state.category);
 
   const [category, setCategory] = useState("overall");
   const [limit, setLimit] = useState("");
@@ -34,13 +33,15 @@ function Budget() {
   useEffect(() => {
     if (userId && isBudgetStale) {
       dispatch(fetchBudget()); 
-      if (!categoriesFetched) {
+      if (!categoriesFetched && categoryStatus === 'idle'){
             dispatch(fetchCategories())
           }
     }
-  }, [dispatch, userId, isBudgetStale]);
+  }, [dispatch, userId, isBudgetStale,categoryStatus,categoriesFetched]);
 
-  const expenseCategories = categories.filter(c => c.type === 'expense');
+  const expenseCategories = Array.isArray(categories)
+  ? categories.filter(c => c.type === 'expense')
+  : [];
 
   const handleCreateBudget = async () => {
     setIsCreating(true); // Start spinner
@@ -118,7 +119,7 @@ function Budget() {
               size="small"
             >
               <MenuItem value="overall">Overall Budget</MenuItem>
-              {expenseCategories.map((cat) => (
+              {expenseCategories?.map((cat) => (
                   <MenuItem key={cat._id || cat.name} value={cat.name}>
                      {cat.name}
                   </MenuItem>
@@ -176,7 +177,7 @@ function Budget() {
               gap: 4
             }}
           >
-            {budgetsList.map((budget) => {
+            {budgetsList?.map((budget) => {
               const spent = budget.spent || 0;
               const limit = budget.limit || 0;
               const rawPercentage = limit > 0 ? (spent / limit) * 100 : 0;

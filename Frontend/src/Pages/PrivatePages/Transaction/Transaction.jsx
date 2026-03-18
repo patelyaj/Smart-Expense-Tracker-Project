@@ -33,7 +33,7 @@ const Transaction = () => {
   const userId = JSON.parse(localStorage.getItem("userInfo"))?._id;
   
   const { transactions, status, totalPages, isTransactionsStale } = useSelector((state) => state.transaction);
-  const { categories, categoriesFetched } = useSelector((state)=> state.category);
+  const { categories, categoriesFetched,status: categoryStatus } = useSelector((state)=> state.category);
   
   // Filter States
   const [startDate, setStartDate] = useState(dayjs().startOf("month").toISOString());
@@ -71,10 +71,10 @@ const Transaction = () => {
 
   useEffect(() => {
     // Prevent double fetching if already loading
-    if (!categoriesFetched && status !== 'loading') {
+    if (!categoriesFetched && categoryStatus === 'idle') {
       dispatch(fetchCategories())
     }
-  }, [dispatch, categoriesFetched, status]);
+  }, [dispatch, categoriesFetched, categoryStatus]);
 
   useEffect(() => {
     if (userId && startDate && endDate && isTransactionsStale) {
@@ -214,7 +214,7 @@ const Transaction = () => {
             sx={{ minWidth: 180 }}
           >
             <MenuItem value="all">All Categories</MenuItem>
-            {categories.map((cat, idx) => (
+            {Array.isArray(categories) && categories.map((cat, idx) => (
               <MenuItem key={idx} value={cat.name}>{cat.name}</MenuItem>
             ))}
           </TextField>
@@ -287,14 +287,14 @@ const Transaction = () => {
             scrollThreshold={0.8}
           >
             <Stack spacing={4}>
-              {Object.entries(groupedTransactions).map(([date, txns]) => (
+              {Object.entries(groupedTransactions)?.map(([date, txns]) => (
                 <Box key={date}>
                   <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ mb: 1.5, ml: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     {date} -------------------------------------------------
                   </Typography>
                   
                   <Paper sx={{ borderRadius: 3, overflow: 'hidden', border: (theme) => `1px solid ${theme.palette.divider}` }} elevation={0}>
-                    {txns.map((txn, index) => {
+                    {txns?.map((txn, index) => {
                       const isIncome = txn.type === "income";
                       const catName = txn.category?.name || "Uncategorized";
 
@@ -367,7 +367,7 @@ const Transaction = () => {
         <TransactionModal
           onClose={() => setIsModalOpen(false)}
           mode={editData ? "edit" : "add"}
-          
+
           existingData={editData}
           userId={userId}
           startDate={startDate}

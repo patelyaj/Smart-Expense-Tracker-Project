@@ -95,15 +95,16 @@ const transactionSlice = createSlice({
         .addCase(fetchTransactions.fulfilled, (state, action) => {
             state.status = 'succeeded';
             
+            const newTxns = action.payload.transactions || [];
             // Check which page was requested in the thunk arguments
             const requestedPage = action.meta.arg.page || 1;
 
             if (requestedPage === 1) {
                 // If page 1 (initial load, search, or filter change), replace the data
-                state.transactions = action.payload.transactions;
+                state.transactions = newTxns;
             } else {
                 // If page > 1 (infinite scroll), append the new data
-                state.transactions = [...state.transactions, ...action.payload.transactions];
+                state.transactions = [...state.transactions, ...newTxns];
             }
 
             state.totalPages = action.payload.totalPages;
