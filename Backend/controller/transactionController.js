@@ -52,11 +52,13 @@ export const exportTransactionsCsv = async (req, res) => {
     }
 };
 
+// fetch transaction 
 
 export const fetchTransactions = async (req, res) => {
     try {
         console.log("fetching transactions..");
         const userId = req.user.userId;
+        
         // 1. Get filters from query params
         const { startDate, endDate, page = 1, limit = 10, search = "", category = "all" } = req.query; 
         
@@ -77,35 +79,37 @@ export const fetchTransactions = async (req, res) => {
 
         // 4. Category Filter
         if (category !== "all") {
-            // Find the category ID first since the transaction stores the ID
             const categoryDoc = await categoryModel.findOne({ name: category, userId });
             if (categoryDoc) {
                 query.category = categoryDoc._id;
             } else {
-                // If category requested doesn't exist for user, return empty
                 return res.status(200).json({ transactions: [], totalPages: 0, currentPage: Number(page) });
             }
         }
 
         const skip = (Number(page) - 1) * Number(limit);
         
-        // 5. countDocuments now uses the same query as the search!
+        // 5. Count Documents
         const totalTransactions = await transactionModel.countDocuments(query);
         const totalPages = Math.ceil(totalTransactions / Number(limit));
 
+        // 6. Fetch and Sort (Date descending, then Newest Added internally)
         const transactions = await transactionModel
             .find(query)
             .populate('category', 'name type')
-            .sort({ date: -1 })
+            .sort({ date: -1, _id: -1 }) 
             .skip(skip)
             .limit(Number(limit))
             .lean(); 
 
         res.status(200).json({ transactions, totalPages, currentPage: Number(page) });
-    } catch(err){
+    } catch(err) {
+        console.error("Error fetching transactions:", err);
         res.status(500).json({message:"Internal server error"});
     }
 }
+
+
 export const addTransaction = async (req, res) => {
     console.log("add transaction api called",req.body);
     try {

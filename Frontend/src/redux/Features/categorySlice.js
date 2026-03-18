@@ -8,7 +8,7 @@ export const fetchCategories = createAsyncThunk(
             const response = await api.get('/categories/', { 
                 withCredentials: true 
             });
-            return response.data; // Array of { name, type }
+            return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to fetch categories');
         }
@@ -20,17 +20,26 @@ const categorySlice = createSlice({
     initialState: {
         categories: [],
         status: 'idle',
+        categoriesFetched: false
     },
-    reducers: {},
+    reducers: {
+        // NEW: Action to reset the fetch status when a new category is added
+        markCategoriesStale: (state) => {
+            state.categoriesFetched = false;
+            state.status = 'idle';
+        }
+    },
     extraReducers: (builder) => {
         builder
             .addCase(fetchCategories.pending, (state) => { state.status = 'loading'; })
             .addCase(fetchCategories.fulfilled, (state, action) => {
                 state.status = 'succeeded';
                 state.categories = action.payload;
+                state.categoriesFetched = true;
             })
             .addCase(fetchCategories.rejected, (state) => { state.status = 'failed'; });
     }
 });
 
+export const { markCategoriesStale } = categorySlice.actions; // Export the action
 export default categorySlice.reducer;

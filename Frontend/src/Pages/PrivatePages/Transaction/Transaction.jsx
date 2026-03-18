@@ -31,7 +31,7 @@ const Transaction = () => {
   
   const { transactions, status, totalPages, isTransactionsStale } = useSelector((state) => state.transaction);
   const { categories } = useSelector((state) => state.category);
-
+  const { categoriesFetched } = useSelector((state)=> state.category);
   // Filter States
   const [startDate, setStartDate] = useState(dayjs().startOf("month").toISOString());
   const [endDate, setEndDate] = useState(dayjs().endOf("month").toISOString());
@@ -62,10 +62,10 @@ const Transaction = () => {
 
   // 2. Fetch Categories (ONLY if we don't already have them)
   useEffect(() => {
-    if (categories.length === 0) {
-      dispatch(fetchCategories()); 
+    if (!categoriesFetched) {
+      dispatch(fetchCategories())
     }
-  }, [dispatch, categories.length]);
+  }, [dispatch, categoriesFetched]);
 
   // 3. Fetch Transactions
   useEffect(() => {

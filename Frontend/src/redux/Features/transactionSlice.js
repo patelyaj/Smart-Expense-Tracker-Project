@@ -1,13 +1,12 @@
-import { createAsyncThunk ,createSlice} from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import api from "../../utils/axiosInstance";
 
-// redux/Features/transactionSlice.js
 const fetchTransactions = createAsyncThunk(
     'transaction/fetchTransactions',
     async ({startDate, endDate, page = 1, limit = 10, search = "", category = "all"}, { rejectWithValue }) => {
         try {
             const response = await api.get(`/transactions`, {
-                params: { startDate, endDate, page, limit, search, category }, // Pass them here
+                params: { startDate, endDate, page, limit, search, category }, 
                 withCredentials: true 
             });
             return response.data;
@@ -17,7 +16,6 @@ const fetchTransactions = createAsyncThunk(
     }
 );
 
-// add transaction
 const addTransaction = createAsyncThunk(
     'transaction/addTransaction',
     async (transactionData, { rejectWithValue }) => { 
@@ -30,7 +28,6 @@ const addTransaction = createAsyncThunk(
     }
 );
 
-// edit transaction
 const editTransaction = createAsyncThunk(
     'transaction/editTransaction', 
     async ({ transactionId, updatedData }, { rejectWithValue }) => {
@@ -43,15 +40,14 @@ const editTransaction = createAsyncThunk(
     }
 );
 
-
-// delete transaction
 const deleteTransaction = createAsyncThunk(
     'transaction/deleteTransaction',
     async (transactionId, { rejectWithValue }) => {
         try {
             const response = await api.delete(`/transactions/${transactionId}`, { withCredentials: true });
             return response.data;
-        } catch (error) {
+        } 
+        catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to delete transaction');
         }   
     }
@@ -61,7 +57,6 @@ const fetchDashboardSummary = createAsyncThunk(
     'transaction/fetchDashboardSummary',
     async ({ startDate, endDate }, { rejectWithValue }) => {
         try {
-            // Make sure your backend route is mounted correctly (e.g., /api/dashboard)
             const response = await api.get('/dashboard', { 
                 params: { startDate, endDate }, 
                 withCredentials: true 
@@ -89,7 +84,6 @@ const transactionSlice = createSlice({
         isDashboardStale: true,
     },
     reducers: {  
-        // We call these when the user changes filters or dates manually!
         markTransactionsStale: (state) => { state.isTransactionsStale = true; },
         markDashboardStale: (state) => { state.isDashboardStale = true; }   
     },
@@ -100,12 +94,12 @@ const transactionSlice = createSlice({
         }) 
         .addCase(fetchTransactions.fulfilled, (state, action) => {
             state.status = 'succeeded';
-            // Assuming your backend returns an array of transactions -> now returns an object with pagination
-            state.transactions = action.payload.transactions; 
-            state.totalPages = action.payload.totalPages; // ADDED
-            state.currentPage = action.payload.currentPage; // ADDED
+            state.transactions = state.currentPage === 1 
+                ? action.payload.transactions 
+                : [...state.transactions, ...action.payload.transactions];
+            state.totalPages = action.payload.totalPages;
+            state.currentPage = action.payload.currentPage;
             state.isTransactionsStale = false;
-            console.log("Transactions fetched successfully", state.transactions);
         })
         .addCase(fetchTransactions.rejected, (state, action) => {
             state.status = 'failed';
@@ -113,11 +107,19 @@ const transactionSlice = createSlice({
         })
         .addCase(addTransaction.pending, (state) => {
             state.status = 'loading';
-        }
-        ).addCase(addTransaction.fulfilled, (state, action) => {
+        })
+        .addCase(addTransaction.fulfilled, (state, action) => {
             state.status = 'succeeded';
+            
+            // Push instead of unshift, then apply strict sorting
             state.transactions.push(action.payload.transaction);
-            state.isTransactionsStale = true; 
+            state.transactions.sort((a, b) => {
+                const dateA = new Date(a.date).getTime();
+                const dateB = new Date(b.date).getTime();
+                if (dateB !== dateA) return dateB - dateA; // Sort Date Descending
+                return b._id.localeCompare(a._id); // Sort by Newest Added Internally
+            });
+            
             state.isDashboardStale = true;
         })
         .addCase(addTransaction.rejected, (state, action) => {
@@ -131,15 +133,21 @@ const transactionSlice = createSlice({
             state.status = 'succeeded';
             const index = state.transactions.findIndex(t => t._id === action.payload.transaction._id);
             if (index !== -1) {
-                state.transactions[index] = { ...action.payload.transaction }
+                state.transactions[index] = { ...action.payload.transaction };
+                
+                // Re-sort in case the date was changed during edit
+                state.transactions.sort((a, b) => {
+                    const dateA = new Date(a.date).getTime();
+                    const dateB = new Date(b.date).getTime();
+                    if (dateB !== dateA) return dateB - dateA;
+                    return b._id.localeCompare(a._id); 
+                });
             }
             state.isTransactionsStale = true; 
             state.isDashboardStale = true;
-            console.log("Transaction edited successfully check length",state.transactions);
         })
         .addCase(editTransaction.rejected, (state, action) => {
             state.status = 'failed';
-
             state.error = action.payload;
         })
         .addCase(deleteTransaction.pending, (state) => {
@@ -160,22 +168,19 @@ const transactionSlice = createSlice({
         })
         .addCase(fetchDashboardSummary.fulfilled, (state, action) => {
             state.status = 'succeeded';
-            // Map the combined API response directly into your state
             state.income = action.payload.income;
             state.expense = action.payload.expense;
             state.netBalance = action.payload.netBalance;
-            state.expenseChartData = action.payload.expenseByCategory; 
-            state.isDashboardStale = false; 
-            
-            console.log("Dashboard summary fetched successfully!");
+            state.expenseChartData = action.payload.expenseChartData;
+            state.isDashboardStale = false;
         })
         .addCase(fetchDashboardSummary.rejected, (state, action) => {
             state.status = 'failed';
             state.error = action.payload;
-        });
+        })
     }
 });
 
 export const { markTransactionsStale, markDashboardStale } = transactionSlice.actions;
+export { fetchTransactions, addTransaction, editTransaction, deleteTransaction, fetchDashboardSummary };
 export default transactionSlice.reducer;
-export {fetchDashboardSummary, fetchTransactions ,addTransaction, editTransaction, deleteTransaction};

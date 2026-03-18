@@ -20,6 +20,7 @@ function Budget() {
   // Extracted status to handle page load states
   const { progressBudgets, status, isBudgetStale } = useSelector((state) => state.budget);
   const budgetsList = progressBudgets || [];
+  const { categoriesFetched } = useSelector((state)=>state.category);
   
   const { categories } = useSelector((state) => state.category);
 
@@ -33,7 +34,9 @@ function Budget() {
   useEffect(() => {
     if (userId && isBudgetStale) {
       dispatch(fetchBudget()); 
-      dispatch(fetchCategories()); 
+      if (!categoriesFetched) {
+            dispatch(fetchCategories())
+          }
     }
   }, [dispatch, userId, isBudgetStale]);
 

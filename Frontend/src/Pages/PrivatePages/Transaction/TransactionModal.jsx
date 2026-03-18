@@ -11,7 +11,7 @@ import { toast } from "react-toastify";
 import {
   addTransaction, editTransaction
 } from "../../../redux/Features/transactionSlice";
-// import { fetchCategories } from "../../../redux/Features/categorySlice";
+import { markCategoriesStale } from "../../../redux/Features/categorySlice";
 
 const TransactionModal = ({ onClose, mode = "add", existingData = null, userId }) => {
   const dispatch = useDispatch();
@@ -22,10 +22,6 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId }
 
   // Added local loading state for submission
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // useEffect(() => {
-  //   dispatch(fetchCategories());
-  // }, [dispatch]);
 
   const existingCategoryName = existingData?.category?.name || existingData?.category || "";
 
@@ -49,7 +45,7 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId }
       return toast.error("Please enter an amount greater than zero.");
     }
 
-    setIsSubmitting(true); // Start spinner
+    setIsSubmitting(true);
 
     const payload = {
       ...formData,
@@ -60,6 +56,16 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId }
     try {
       if (mode === "add") {
         await dispatch(addTransaction(payload)).unwrap();
+        
+        // Check if this category is brand new
+        const isNewCategory = !categories.some(
+            (cat) => cat.name.toLowerCase() === formData.category.toLowerCase() && cat.type === formData.type
+        );
+        
+        if (isNewCategory) {
+            // Mark state as stale. The useEffect in the parent component will handle the single fetch.
+            dispatch(markCategoriesStale());
+        }
 
         const amountNum = Number(formData.amount);
         if (formData.type === "income") {
@@ -97,30 +103,25 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId }
           transactionId: existingData._id, 
           updatedData: payload 
         })).unwrap();
+
+        // Also check if they edited to a new category
+        const isNewCategory = !categories.some(
+            (cat) => cat.name.toLowerCase() === formData.category.toLowerCase() && cat.type === formData.type
+        );
+        if (isNewCategory) {
+            // Mark state as stale.
+            dispatch(markCategoriesStale());
+        }
+
         toast.success("Transaction updated successfully.");
       }
-
-      // dispatch(fetchTransactions({ 
-      //   userId, 
-      //   startDate, 
-      //   endDate, 
-      //   page: 1, 
-      //   limit: 10,
-      //   search: "", 
-      //   category: "all" 
-      // }));
-      
-      // dispatch(fetchIncomeExpense({ userId, startDate, endDate }));
-      // dispatch(fetchBudgetProgress(userId));
-      // dispatch(fetchCategories());
-
       
       onClose();
     } catch (error) {
       console.error("Save Error:", error);
       toast.error(error?.message || "Failed to save transaction.");
     } finally {
-      setIsSubmitting(false); // Stop spinner
+      setIsSubmitting(false); 
     }
   };
 
@@ -176,7 +177,6 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId }
               label="Date"
               value={dayjs(formData.date)}
               onChange={(newDate) => {
-                // Check if newDate exists and is valid before formatting
                 const formattedDate = newDate && newDate.isValid() 
                   ? newDate.format("YYYY-MM-DD") 
                   : "";
