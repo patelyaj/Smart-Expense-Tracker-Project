@@ -10,7 +10,6 @@ router.get('/',verifyToken ,fetchTransactions);
 //  merged for both on dashboard
 // router.get('/balance-income-expense',verifyToken,fetchIncomeExpense); 
 // router.get('/fetchexpensebycategory/:id',verifyToken ,fetchExpenseByCategory);
-// router.get('/',verifyToken,fetchDashboardSummary);
 
 //////////////////  sure separate api needed
 // get transaction csv of a user

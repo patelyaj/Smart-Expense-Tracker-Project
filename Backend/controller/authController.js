@@ -178,7 +178,7 @@ export const logoutUser = async (req, res) => {
 export const updateProfile = async (req, res) => {
     try {
         const { username, email, mobileno } = req.body;
-        const userId = req.params.id;
+        const userId = req.user.userId;
 
         const updatedUser = await User.findByIdAndUpdate(
             userId,

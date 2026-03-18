@@ -9,6 +9,6 @@ router.post("/signup", authLimiter, registerUser);
 router.post("/login", authLimiter, loginUser);
 router.post("/logout", authLimiter, logoutUser);
 
-router.post("/updateProfile/:id", verifyToken, updateProfile);
+router.post("/updateProfile", verifyToken, updateProfile);
 
 export default router;

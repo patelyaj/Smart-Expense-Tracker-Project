@@ -37,7 +37,7 @@ function Profile() {
   const handleSave = async () => {
     try {
       setIsLoading(true);
-      const response = await api.post(`/users/updateProfile/${initialUserInfo._id}`, formData);
+      const response = await api.post(`/users/updateProfile`, formData);
       console.log("update profile ,",response);
       const updatedUser = { ...initialUserInfo, ...formData };
       localStorage.setItem('userInfo', JSON.stringify(updatedUser));
