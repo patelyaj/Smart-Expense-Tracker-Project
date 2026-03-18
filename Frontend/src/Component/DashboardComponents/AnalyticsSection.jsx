@@ -162,17 +162,22 @@ function AnalyticsSection() {
                     stroke={theme.palette.divider} 
                   />
 
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    angle={-35}
-                    textAnchor="end"
-                    interval={0}
-                    height={70}
-                    tickMargin={20}
-                    tick={{ fill: theme.palette.text.secondary }} 
-                  />
+                          <XAxis
+          dataKey="name"
+          axisLine={false}
+          tickLine={false}
+          angle={-90}
+          textAnchor="end"
+          interval={0}
+          height={150}
+          // NEW: Added dy to push down, and dx to align left
+          tick={{ 
+            fill: theme.palette.text.secondary, 
+            fontSize: 13, 
+            dy: 50,  // Pushes the text 15 pixels down
+            dx: -5   // Pushes the text 5 pixels left to center it under the bar
+          }} 
+        />
 
                   <YAxis
                     axisLine={false}

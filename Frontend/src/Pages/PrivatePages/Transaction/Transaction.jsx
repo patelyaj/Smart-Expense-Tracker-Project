@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import dayjs from "dayjs";
 import { 
   Container, Box, Typography, Button, IconButton, Paper, 
-  Avatar, Stack, Divider, MenuItem, TextField, Popover, InputAdornment, Pagination,
+  Avatar, Stack, Divider, MenuItem, TextField, Popover, InputAdornment, 
   CircularProgress
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -15,6 +15,9 @@ import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import SearchIcon from '@mui/icons-material/Search';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
+
+// Import Infinite Scroll Library
+import InfiniteScroll from 'react-infinite-scroll-component';
 
 import Navbar from "../../../Component/DashboardComponents/Navbar";
 import TransactionModal from "./TransactionModal";
@@ -30,8 +33,8 @@ const Transaction = () => {
   const userId = JSON.parse(localStorage.getItem("userInfo"))?._id;
   
   const { transactions, status, totalPages, isTransactionsStale } = useSelector((state) => state.transaction);
-  const { categories } = useSelector((state) => state.category);
-  const { categoriesFetched } = useSelector((state)=> state.category);
+  const { categories, categoriesFetched } = useSelector((state)=> state.category);
+  
   // Filter States
   const [startDate, setStartDate] = useState(dayjs().startOf("month").toISOString());
   const [endDate, setEndDate] = useState(dayjs().endOf("month").toISOString());
@@ -52,22 +55,27 @@ const Transaction = () => {
 
   const openDatePopover = Boolean(anchorEl);
 
-  // 1. Handle Debouncing for Search
+  // NEW: Smarter Debounce Logic
   useEffect(() => {
     const handler = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
+      // Only trigger a new fetch if the search text actually changed
+      if (searchQuery !== debouncedSearch) {
+        setDebouncedSearch(searchQuery);
+        setPage(1); // Reset to page 1 for the new search results
+        dispatch(markTransactionsStale()); // Now we fetch!
+      }
     }, 500);
+    
     return () => clearTimeout(handler);
-  }, [searchQuery]);
+  }, [searchQuery, debouncedSearch, dispatch]);
 
-  // 2. Fetch Categories (ONLY if we don't already have them)
   useEffect(() => {
-    if (!categoriesFetched) {
+    // Prevent double fetching if already loading
+    if (!categoriesFetched && status !== 'loading') {
       dispatch(fetchCategories())
     }
-  }, [dispatch, categoriesFetched]);
+  }, [dispatch, categoriesFetched, status]);
 
-  // 3. Fetch Transactions
   useEffect(() => {
     if (userId && startDate && endDate && isTransactionsStale) {
       dispatch(fetchTransactions({ 
@@ -75,10 +83,8 @@ const Transaction = () => {
         search: debouncedSearch, category: selectedCategory 
       }));
     }
-    //  Notice we are NO LONGER fetching budget or income/expense here!
-  }, [startDate, endDate, page, debouncedSearch, selectedCategory, dispatch, userId,isTransactionsStale]);
+  }, [startDate, endDate, page, debouncedSearch, selectedCategory, dispatch, userId, isTransactionsStale]);
 
-  // 4. Group transactions by date
   const groupedTransactions = useMemo(() => {
     const groups = {};
     transactions.forEach((txn) => {
@@ -89,25 +95,19 @@ const Transaction = () => {
     return groups;
   }, [transactions]);
 
-  // Handlers
+  // NEW: Simplified handler
   const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-    dispatch(markTransactionsStale());
-    setPage(1); 
+    setSearchQuery(e.target.value);   
   };
 
   const handleCategoryChange = (e) => {
     setSelectedCategory(e.target.value);
-    dispatch(markTransactionsStale());
     setPage(1); 
+    dispatch(markTransactionsStale());
   };
 
-  //  HIGHLY OPTIMIZED DELETE
   const handleDelete = async (txnId) => {
     if (window.confirm("Are you sure you want to delete this transaction?")) {
-      // Just dispatch the delete action. 
-      // Your Redux slice already filters this out of the 'transactions' array natively.
-      // NO refetching needed! The UI will update instantly.
       await dispatch(deleteTransaction(txnId));
     }
   };
@@ -134,6 +134,14 @@ const Transaction = () => {
       alert("Failed to export CSV. Please try again.");
     } finally {
       setIsExporting(false); 
+    }
+  };
+
+  // Function to load more data triggered by InfiniteScroll
+  const fetchMoreData = () => {
+    if (page < totalPages) {
+      setPage(prevPage => prevPage + 1);
+      dispatch(markTransactionsStale());
     }
   };
 
@@ -182,7 +190,6 @@ const Transaction = () => {
             bgcolor: 'background.paper'
           }} 
         >
-          {/* Search */}
           <TextField
             placeholder="Search By Description..."
             value={searchQuery}
@@ -198,7 +205,6 @@ const Transaction = () => {
             sx={{ flex: 1, minWidth: 200 }}
           />
 
-          {/* Category */}
           <TextField
             select
             label="Category"
@@ -213,7 +219,6 @@ const Transaction = () => {
             ))}
           </TextField>
 
-          {/* Date Picker Trigger */}
           <Button
             variant="outlined"
             endIcon={<CalendarMonthIcon />}
@@ -247,8 +252,8 @@ const Transaction = () => {
           </Popover>
         </Paper>
 
-        {/* Content States */}
-        {status === "loading" && (
+        {/* Initial Loading State - Only show full spinner on page 1 */}
+        {status === "loading" && page === 1 && (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 10 }}>
             <CircularProgress size={50} thickness={4} />
           </Box>
@@ -262,96 +267,99 @@ const Transaction = () => {
           </Paper>
         )}
 
-        {/* Transactions list */}
-        {status !== "loading" && (
-          <Stack spacing={4}>
-            {Object.entries(groupedTransactions).map(([date, txns]) => (
-              <Box key={date}>
-                <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ mb: 1.5, ml: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {date} -------------------------------------------------
-                </Typography>
-                
-                <Paper sx={{ borderRadius: 3, overflow: 'hidden', border: (theme) => `1px solid ${theme.palette.divider}` }} elevation={0}>
-                  {txns.map((txn, index) => {
-                    const isIncome = txn.type === "income";
-                    const catName = txn.category?.name || "Uncategorized";
+        {/* Transactions list with Infinite Scroll */}
+        {Object.keys(groupedTransactions).length > 0 && (
+          <InfiniteScroll
+            dataLength={transactions.length}
+            next={fetchMoreData}
+            hasMore={page < totalPages}
+            loader={
+              <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+                <CircularProgress size={30} />
+              </Box>
+            }
+            endMessage={
+              <Typography textAlign="center" color="text.secondary" sx={{ mt: 4, mb: 4, fontWeight: 500 }}>
+                You've reached the end of your transactions.
+              </Typography>
+            }
+            // Optional: You can adjust this threshold. 0.8 means it triggers when 80% down the page
+            scrollThreshold={0.8}
+          >
+            <Stack spacing={4}>
+              {Object.entries(groupedTransactions).map(([date, txns]) => (
+                <Box key={date}>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ mb: 1.5, ml: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {date} -------------------------------------------------
+                  </Typography>
+                  
+                  <Paper sx={{ borderRadius: 3, overflow: 'hidden', border: (theme) => `1px solid ${theme.palette.divider}` }} elevation={0}>
+                    {txns.map((txn, index) => {
+                      const isIncome = txn.type === "income";
+                      const catName = txn.category?.name || "Uncategorized";
 
-                    return (
-                      <React.Fragment key={txn._id}>
-                        <Box sx={{ 
-                          p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-                          transition: 'background-color 0.2s',
-                          '&:hover': { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03) } 
-                        }}>
-                          
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
-                            <Avatar sx={{ 
-                              width: 48, height: 48,
-                              bgcolor: (theme) => alpha(theme.palette[isIncome ? 'success' : 'error'].main, 0.1), 
-                              color: isIncome ? 'success.main' : 'error.main' 
-                            }}>
-                              {isIncome ? <TrendingUpIcon /> : <TrendingDownIcon />}
-                            </Avatar>
-                            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                              <Typography variant="subtitle1" fontWeight={700}>
-                                {txn.title}
-                              </Typography>
-                              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
-                                  {catName}
+                      return (
+                        <React.Fragment key={txn._id}>
+                          <Box sx={{ 
+                            p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                            transition: 'background-color 0.2s',
+                            '&:hover': { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03) } 
+                          }}>
+                            
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                              <Avatar sx={{ 
+                                width: 48, height: 48,
+                                bgcolor: (theme) => alpha(theme.palette[isIncome ? 'success' : 'error'].main, 0.1), 
+                                color: isIncome ? 'success.main' : 'error.main' 
+                              }}>
+                                {isIncome ? <TrendingUpIcon /> : <TrendingDownIcon />}
+                              </Avatar>
+                              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                                <Typography variant="subtitle1" fontWeight={700}>
+                                  {txn.title}
                                 </Typography>
-                                {txn.description && (
-                                  <Button
-                                    size="small"
-                                    sx={{ textTransform: "none", fontSize: "0.7rem", minWidth: "auto", color: "primary.main" }}
-                                    onClick={() => { setSelectedDescription(txn.description); setDescModalOpen(true); }}
-                                  >
-                                    View description
-                                  </Button>
-                                )}
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                  <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
+                                    {catName}
+                                  </Typography>
+                                  {txn.description && (
+                                    <Button
+                                      size="small"
+                                      sx={{ textTransform: "none", fontSize: "0.7rem", minWidth: "auto", color: "primary.main" }}
+                                      onClick={() => { setSelectedDescription(txn.description); setDescModalOpen(true); }}
+                                    >
+                                      View description
+                                    </Button>
+                                  )}
+                                </Box>
+                              </Box>
+                            </Box>
+
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <Typography variant="h6" fontWeight={800} color={isIncome ? 'success.main' : 'error.main'}>
+                                {isIncome ? "+" : "-"}&#8377;{txn.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </Typography>
+                              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                <IconButton size="small" onClick={() => { setEditData(txn); setIsModalOpen(true); }}>
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton size="small" onClick={() => handleDelete(txn._id)}>
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
                               </Box>
                             </Box>
                           </Box>
-
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                            <Typography variant="h6" fontWeight={800} color={isIncome ? 'success.main' : 'error.main'}>
-                              {isIncome ? "+" : "-"}&#8377;{txn.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 0.5 }}>
-                              <IconButton size="small" onClick={() => { setEditData(txn); setIsModalOpen(true); }}>
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                              <IconButton size="small" onClick={() => handleDelete(txn._id)}>
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Box>
-                          </Box>
-                        </Box>
-                        {index !== txns.length - 1 && <Divider />}
-                      </React.Fragment>
-                    );
-                  })}
-                </Paper>
-              </Box>
-            ))}
-          </Stack>
+                          {index !== txns.length - 1 && <Divider />}
+                        </React.Fragment>
+                      );
+                    })}
+                  </Paper>
+                </Box>
+              ))}
+            </Stack>
+          </InfiniteScroll>
         )}
 
-        {/* Pagination */}
-        {totalPages > 1 && status !== "loading" && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-            <Pagination 
-              count={totalPages} 
-              page={page} 
-              onChange={(e, value) => {
-                setPage(value);
-                dispatch(markTransactionsStale())
-              }} 
-              color="primary" 
-              size="large"
-            />
-          </Box>
-        )}
       </Container>
 
       {/* Modals */}
@@ -359,6 +367,7 @@ const Transaction = () => {
         <TransactionModal
           onClose={() => setIsModalOpen(false)}
           mode={editData ? "edit" : "add"}
+          
           existingData={editData}
           userId={userId}
           startDate={startDate}

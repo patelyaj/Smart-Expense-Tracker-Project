@@ -158,7 +158,8 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId }
               label="Amount"
               value={formData.amount}
               onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-              fullWidth required
+              fullWidth 
+              required
               InputProps={{ startAdornment: <span style={{ marginRight: 8 }}>&#8377;</span> }}
             />
 

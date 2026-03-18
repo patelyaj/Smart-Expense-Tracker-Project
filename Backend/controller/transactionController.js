@@ -109,7 +109,6 @@ export const fetchTransactions = async (req, res) => {
     }
 }
 
-
 export const addTransaction = async (req, res) => {
     console.log("add transaction api called",req.body);
     try {

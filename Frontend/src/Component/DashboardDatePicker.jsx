@@ -3,6 +3,68 @@ import dayjs from "dayjs";
 import { Box, Button, Stack, Typography, Divider, Grid } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers";
 
+const PRESET_CONFIG = [
+  { key: "thisWeek", label: "This Week" },
+  { key: "lastWeek", label: "Last Week" },
+  { key: "last7", label: "Last 7 Days" },
+  { key: "allTime", label: "All Time" },
+  { key: "currentMonth", label: "This Month" },
+  { key: "lastMonth", label: "Last Month" },
+  { key: "thisYear", label: "This Year" },
+  { key: "lastYear", label: "Last Year" }
+];
+
+const getPresetRange = (type) => {
+  switch (type) {
+    case "thisWeek":
+      return {
+        start: dayjs().startOf("week"),
+        end: dayjs().endOf("week")
+      };
+    case "lastWeek":
+      return {
+        start: dayjs().subtract(1, "week").startOf("week"),
+        end: dayjs().subtract(1, "week").endOf("week")
+      };
+    case "last7":
+      return {
+        start: dayjs().subtract(6, "day").startOf("day"),
+        end: dayjs().endOf("day")
+      };
+    case "currentMonth":
+      return {
+        start: dayjs().startOf("month"),
+        end: dayjs().endOf("month")
+      };
+    case "lastMonth":
+      return {
+        start: dayjs().subtract(1, "month").startOf("month"),
+        end: dayjs().subtract(1, "month").endOf("month")
+      };
+    case "thisYear":
+      return {
+        start: dayjs().startOf("year"),
+        end: dayjs().endOf("year")
+      };
+    case "lastYear":
+      return {
+        start: dayjs().subtract(1, "year").startOf("year"),
+        end: dayjs().subtract(1, "year").endOf("year")
+      };
+    case "allTime":
+      return {
+        start: dayjs("2000-01-01").startOf("day"),
+        end: dayjs().endOf("day")
+      };
+    default:
+      return null;
+  }
+};
+
+const isSameRange = (startA, endA, startB, endB) =>
+  startA?.startOf("day").valueOf() === startB?.startOf("day").valueOf() &&
+  endA?.endOf("day").valueOf() === endB?.endOf("day").valueOf();
+
 export default function DashboardDatePicker({ 
   initialStartDate, 
   initialEndDate, 
@@ -12,58 +74,56 @@ export default function DashboardDatePicker({
   // Internal draft states (won't trigger any API calls yet)
   const [tempStart, setTempStart] = React.useState(dayjs(initialStartDate));
   const [tempEnd, setTempEnd] = React.useState(dayjs(initialEndDate));
+  const [isApplying, setIsApplying] = React.useState(false);
+  
+  const selectedPreset = React.useMemo(() => {
+    return (
+      PRESET_CONFIG.find(({ key }) => {
+        const presetRange = getPresetRange(key);
+        return presetRange && isSameRange(tempStart, tempEnd, presetRange.start, presetRange.end);
+      })?.key || null
+    );
+  }, [tempStart, tempEnd]);
+
+  React.useEffect(() => {
+    setTempStart(dayjs(initialStartDate));
+    setTempEnd(dayjs(initialEndDate));
+  }, [initialStartDate, initialEndDate]);
 
   const handlePreset = (type) => {
-    let newStart, newEnd;
-
-    switch (type) {
-      case "thisWeek":
-        newStart = dayjs().startOf("week");
-        newEnd = dayjs().endOf("week");
-        break;
-      case "lastWeek":
-        newStart = dayjs().subtract(1, "week").startOf("week");
-        newEnd = dayjs().subtract(1, "week").endOf("week");
-        break;
-      case "last7":
-        newStart = dayjs().subtract(6, "day");
-        newEnd = dayjs();
-        break;
-      case "currentMonth":
-        newStart = dayjs().startOf("month");
-        newEnd = dayjs().endOf("month");
-        break;
-      case "lastMonth":
-        newStart = dayjs().subtract(1, "month").startOf("month");
-        newEnd = dayjs().subtract(1, "month").endOf("month");
-        break;
-      case "thisYear":
-        newStart = dayjs().startOf("year");
-        newEnd = dayjs().endOf("year");
-        break;
-      case "lastYear":
-        newStart = dayjs().subtract(1, "year").startOf("year");
-        newEnd = dayjs().subtract(1, "year").endOf("year");
-        break;
-      case "allTime":
-        // Safe past and future dates to ensure all DB records are captured
-        newStart = dayjs("2000-01-01");
-        newEnd = dayjs().add(1, "year").endOf("year");
-        break;
-      default:
-        return;
-    }
+    const presetRange = getPresetRange(type);
+    if (!presetRange) return;
 
     // Update the draft state when a preset is clicked
-    setTempStart(newStart);
-    setTempEnd(newEnd);
+    setTempStart(presetRange.start);
+    setTempEnd(presetRange.end);
   };
 
-  const handleApply = () => {
-    // ONLY pass the dates up to the parent when Apply is clicked
-    onApply(tempStart.toISOString(), tempEnd.toISOString());
-    onClose();
-  };
+const handleApply = () => {
+  if (isApplying) return;
+
+  setIsApplying(true);
+  onApply(tempStart.toISOString(), tempEnd.toISOString());
+  onClose();
+};
+
+  const getPresetButtonSx = (presetKey) => ({
+    justifyContent: "flex-start",
+    textTransform: "none",
+    fontWeight: selectedPreset === presetKey ? 700 : 500,
+    borderRadius: 2,
+    px: 1.5,
+    py: 1,
+    color: selectedPreset === presetKey ? "primary.main" : "text.primary",
+    bgcolor: selectedPreset === presetKey ? "primary.50" : "transparent",
+    border: "1px solid",
+    borderColor: selectedPreset === presetKey ? "primary.main" : "transparent",
+    transition: "all 0.2s ease",
+    "&:hover": {
+      bgcolor: selectedPreset === presetKey ? "primary.100" : "action.hover",
+      borderColor: selectedPreset === presetKey ? "primary.main" : "transparent"
+    }
+  });
 
   return (
     <Box sx={{ p: 3, width: 550 }}>
@@ -105,16 +165,16 @@ export default function DashboardDatePicker({
             {/* Column 1 */}
             <Grid item xs={6}>
               <Stack spacing={0.5}>
-                <Button size="small" sx={{ justifyContent: "flex-start", textTransform: 'none', fontWeight: 500 }} onClick={() => handlePreset("thisWeek")}>
+                <Button size="small" sx={getPresetButtonSx("thisWeek")} onClick={() => handlePreset("thisWeek")}>
                   This Week
                 </Button>
-                <Button size="small" sx={{ justifyContent: "flex-start", textTransform: 'none', fontWeight: 500 }} onClick={() => handlePreset("lastWeek")}>
+                <Button size="small" sx={getPresetButtonSx("lastWeek")} onClick={() => handlePreset("lastWeek")}>
                   Last Week
                 </Button>
-                <Button size="small" sx={{ justifyContent: "flex-start", textTransform: 'none', fontWeight: 500 }} onClick={() => handlePreset("last7")}>
+                <Button size="small" sx={getPresetButtonSx("last7")} onClick={() => handlePreset("last7")}>
                   Last 7 Days
                 </Button>
-                <Button size="small" sx={{ justifyContent: "flex-start", textTransform: 'none', fontWeight: 500 }} onClick={() => handlePreset("allTime")}>
+                <Button size="small" sx={getPresetButtonSx("allTime")} onClick={() => handlePreset("allTime")}>
                   All Time
                 </Button>
               </Stack>
@@ -123,16 +183,16 @@ export default function DashboardDatePicker({
             {/* Column 2 */}
             <Grid item xs={6}>
               <Stack spacing={0.5}>
-                <Button size="small" sx={{ justifyContent: "flex-start", textTransform: 'none', fontWeight: 500 }} onClick={() => handlePreset("currentMonth")}>
+                <Button size="small" sx={getPresetButtonSx("currentMonth")} onClick={() => handlePreset("currentMonth")}>
                   This Month
                 </Button>
-                <Button size="small" sx={{ justifyContent: "flex-start", textTransform: 'none', fontWeight: 500 }} onClick={() => handlePreset("lastMonth")}>
+                <Button size="small" sx={getPresetButtonSx("lastMonth")} onClick={() => handlePreset("lastMonth")}>
                   Last Month
                 </Button>
-                <Button size="small" sx={{ justifyContent: "flex-start", textTransform: 'none', fontWeight: 500 }} onClick={() => handlePreset("thisYear")}>
+                <Button size="small" sx={getPresetButtonSx("thisYear")} onClick={() => handlePreset("thisYear")}>
                   This Year
                 </Button>
-                <Button size="small" sx={{ justifyContent: "flex-start", textTransform: 'none', fontWeight: 500 }} onClick={() => handlePreset("lastYear")}>
+                <Button size="small" sx={getPresetButtonSx("lastYear")} onClick={() => handlePreset("lastYear")}>
                   Last Year
                 </Button>
               </Stack>
@@ -146,8 +206,8 @@ export default function DashboardDatePicker({
             <Button color="inherit" onClick={onClose} sx={{ fontWeight: 600 }}>
               Cancel
             </Button>
-            <Button variant="contained" disableElevation onClick={handleApply} sx={{ fontWeight: 600 }}>
-              Apply
+            <Button variant="contained" disableElevation disabled={isApplying} onClick={handleApply} sx={{ fontWeight: 600 }}>
+              {isApplying ? "Applying..." : "Apply"}
             </Button>
           </Stack>
         </Stack>
