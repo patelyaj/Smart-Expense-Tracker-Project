@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import dayjs from "dayjs";
 import { 
@@ -27,6 +27,9 @@ import api from "../../../utils/axiosInstance";
 
 import { fetchTransactions, deleteTransaction, markTransactionsStale } from "../../../redux/Features/transactionSlice";
 import { fetchCategories } from "../../../redux/Features/categorySlice";
+import { Skeleton } from "@mui/material";
+
+import { Snackbar, Alert } from "@mui/material";
 
 const Transaction = () => {
   const dispatch = useDispatch();
@@ -53,7 +56,21 @@ const Transaction = () => {
   // Loading States
   const [isExporting, setIsExporting] = useState(false); 
 
+  const [undoData, setUndoData] = useState(null);
+  const [showUndo, setShowUndo] = useState(false);
   const openDatePopover = Boolean(anchorEl);
+
+  const deleteTimeoutRef = useRef(null);
+
+  // NEW: Cleanup effect to ensure database deletes if user navigates away before timer ends
+  useEffect(() => {
+    return () => {
+      if (deleteTimeoutRef.current) {
+        clearTimeout(deleteTimeoutRef.current.timeoutId);
+        dispatch(deleteTransaction(deleteTimeoutRef.current.txn._id));
+      }
+    };
+  }, [dispatch]);
 
   // NEW: Smarter Debounce Logic
   useEffect(() => {
@@ -106,11 +123,31 @@ const Transaction = () => {
     dispatch(markTransactionsStale());
   };
 
-  const handleDelete = async (txnId) => {
-    if (window.confirm("Are you sure you want to delete this transaction?")) {
-      await dispatch(deleteTransaction(txnId));
-    }
-  };
+    const handleDelete = (txn) => {
+      // If there's ALREADY a pending delete, commit it to the database immediately
+      if (deleteTimeoutRef.current) {
+        clearTimeout(deleteTimeoutRef.current.timeoutId);
+        dispatch(deleteTransaction(deleteTimeoutRef.current.txn._id));
+      }
+
+      setUndoData(txn);
+      setShowUndo(true);
+
+      // Optimistic remove
+      dispatch({
+        type: "transaction/deleteTransaction/fulfilled",
+        payload: { transactionId: txn._id }
+      });
+
+      const timeoutId = setTimeout(() => {
+        dispatch(deleteTransaction(txn._id));
+        setUndoData(null);
+        setShowUndo(false);
+        deleteTimeoutRef.current = null;
+      }, 4000);
+
+      deleteTimeoutRef.current = { txn, timeoutId };
+    };
 
   const handleExportCsv = async () => {
     setIsExporting(true);
@@ -254,9 +291,26 @@ const Transaction = () => {
 
         {/* Initial Loading State - Only show full spinner on page 1 */}
         {status === "loading" && page === 1 && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 10 }}>
-            <CircularProgress size={50} thickness={4} />
-          </Box>
+          <Stack spacing={3} sx={{ mt: 4 }}>
+            {[...Array(6)].map((_, i) => (
+              <Paper key={i} sx={{ p: 2.5, borderRadius: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  
+                  <Skeleton variant="circular" width={48} height={48} animation="wave" />
+
+                  <Box sx={{ flex: 1 }}>
+                    <Skeleton width="40%" height={20} animation="wave" />
+                    <Skeleton width="60%" height={15} animation="wave" />
+                  </Box>
+
+                  <Box>
+                    <Skeleton width={80} height={25} animation="wave" />
+                  </Box>
+
+                </Box>
+              </Paper>
+            ))}
+          </Stack>
         )}
 
         {Object.keys(groupedTransactions).length === 0 && status !== "loading" && (
@@ -268,7 +322,7 @@ const Transaction = () => {
         )}
 
         {/* Transactions list with Infinite Scroll */}
-        {Object.keys(groupedTransactions).length > 0 && (
+        {status !== "loading" && Object.keys(groupedTransactions).length > 0  && (
           <InfiniteScroll
             dataLength={transactions.length}
             next={fetchMoreData}
@@ -343,7 +397,7 @@ const Transaction = () => {
                                 <IconButton size="small" onClick={() => { setEditData(txn); setIsModalOpen(true); }}>
                                   <EditIcon fontSize="small" />
                                 </IconButton>
-                                <IconButton size="small" onClick={() => handleDelete(txn._id)}>
+                                <IconButton size="small" onClick={() => handleDelete(txn)}>
                                   <DeleteIcon fontSize="small" />
                                 </IconButton>
                               </Box>
@@ -359,6 +413,42 @@ const Transaction = () => {
             </Stack>
           </InfiniteScroll>
         )}
+          {/* ✅ GLOBAL SINGLE SNACKBAR */}
+          <Snackbar
+            open={showUndo}
+            autoHideDuration={4000}
+            onClose={() => setShowUndo(false)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+          >
+            <Alert
+              severity="info"
+              action={
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() => {
+                    if (deleteTimeoutRef.current) {
+                      clearTimeout(deleteTimeoutRef.current.timeoutId);
+                      deleteTimeoutRef.current = null;
+                    }
+
+                    dispatch({
+                      type: "transaction/addTransaction/fulfilled",
+                      payload: { transaction: undoData }
+                    });
+
+                    setUndoData(null);
+                    setShowUndo(false);
+                  }}
+                >
+                  UNDO
+                </Button>
+              }
+            >
+              Transaction deleted
+            </Alert>
+          </Snackbar>
+                  
 
       </Container>
 

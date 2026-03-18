@@ -12,6 +12,7 @@ import { fetchBudget, createBudget } from "../../../redux/Features/budgetSlice";
 import { fetchCategories } from "../../../redux/Features/categorySlice"; 
 import dayjs from "dayjs";
 
+import { Skeleton } from "@mui/material";
 function Budget() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -173,8 +174,30 @@ function Budget() {
 
         {/* BUDGET LIST CARDS */}
         {status === 'loading' && budgetsList.length === 0 ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
-            <CircularProgress size={50} thickness={4} />
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, 1fr)",
+                md: "repeat(3, 1fr)"
+              },
+              gap: 4
+            }}
+          >
+            {[...Array(6)].map((_, i) => (
+              <Paper key={i} sx={{ p: 3.5, borderRadius: 3 }}>
+                
+                <Skeleton width="60%" height={25} animation="wave" />
+                
+                <Skeleton width="40%" height={30} sx={{ mt: 2 }} animation="wave" />
+                
+                <Skeleton height={10} sx={{ mt: 3 }} animation="wave" />
+                
+                <Skeleton width="50%" height={20} sx={{ mt: 2 }} animation="wave" />
+
+              </Paper>
+            ))}
           </Box>
         ) : (
           <Box

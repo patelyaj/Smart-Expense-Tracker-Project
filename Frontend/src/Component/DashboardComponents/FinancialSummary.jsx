@@ -7,6 +7,7 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 
 import { useSelector } from "react-redux";
 import { alpha } from "@mui/material/styles";
+import {Skeleton} from "@mui/material";
 
 const FinancialSummary = () => {
   const { income, expense, netBalance, status } = useSelector(
@@ -71,9 +72,11 @@ const FinancialSummary = () => {
             </Typography>
 
             <Typography variant="h2" fontWeight={700} color="primary.main">
-              {status === "loading"
-                ? <CircularProgress size={30}/>
-                : `₹${netBalance?.toLocaleString() || 0}`}
+              {status === "loading" ? (
+                <Skeleton animation="wave" width={120} height={40} />
+              ) : (
+                `₹${netBalance?.toLocaleString() || 0}`
+              )}
             </Typography>
           </Box>
         </CardContent>
@@ -99,8 +102,9 @@ const FinancialSummary = () => {
 
             <Typography variant="h2" fontWeight={700} color="success.main">
               {status === "loading"
-                ? <CircularProgress size={30}/>
-                : `+₹${income?.toLocaleString() || 0}`}
+                ? (
+                <Skeleton animation="wave" width={120} height={40} />
+              ) : `+₹${income?.toLocaleString() || 0}`}
             </Typography>
           </Box>
         </CardContent>
@@ -126,8 +130,9 @@ const FinancialSummary = () => {
 
             <Typography variant="h2" fontWeight={700} color="error.main">
               {status === "loading"
-                ? <CircularProgress size={30}/>
-                : `-₹${expense?.toLocaleString() || 0}`}
+                ? (
+                  <Skeleton animation="wave" width={120} height={40} />
+                ) : `-₹${expense?.toLocaleString() || 0}`}
             </Typography>
           </Box>
         </CardContent>

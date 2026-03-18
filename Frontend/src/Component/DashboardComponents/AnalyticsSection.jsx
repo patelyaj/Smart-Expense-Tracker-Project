@@ -13,7 +13,7 @@ import {
   CartesianGrid
 } from "recharts";
 
-import { Box, Paper, Typography, useTheme, CircularProgress } from "@mui/material";
+import { Box, Paper, Typography, useTheme, Skeleton } from "@mui/material";
 
 function AnalyticsSection() {
   const theme = useTheme();
@@ -95,7 +95,7 @@ function AnalyticsSection() {
           <div style={{ width: "100%", height: 400 }}>
             {status === "loading" ? (
               <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
-                <CircularProgress />
+                <Skeleton animation="wave" height={400} width={300} />
               </Box>
             ) : (
               <ResponsiveContainer>
@@ -148,7 +148,7 @@ function AnalyticsSection() {
           <div style={{ width: "100%", height: 400 }}>
             {status === "loading" ? (
               <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
-                <CircularProgress />
+                <Skeleton animation="wave" height={500} width={400} />
               </Box>
             ) : expenseChartData?.length > 0 ? (
               <ResponsiveContainer>

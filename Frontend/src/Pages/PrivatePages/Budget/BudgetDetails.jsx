@@ -20,6 +20,8 @@ import {
   deleteBudget
 } from "../../../redux/Features/budgetSlice";
 
+import { Skeleton } from "@mui/material";
+
 function BudgetDetails() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -35,14 +37,13 @@ function BudgetDetails() {
     }
   }, [budgetId, dispatch]);
 
-  // Provide a proper loading state screen while details are fetched
-  if (!budgetDetails || !budgetDetails.budget || status === 'loading') {
+    // Provide a proper loading skeleton state screen while details are fetched
+    if (!budgetDetails || !budgetDetails.budget || status === 'loading') {
     return (
-      <Box sx={{ bgcolor: "background.default", minHeight: "100vh" }}>
-        <Navbar />
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '70vh' }}>
-            <CircularProgress size={50} thickness={4} />
-        </Box>
+      <Box sx={{ p: 4 }}>
+        <Skeleton width="30%" height={40} animation="wave" />
+        <Skeleton height={100} sx={{ mt: 3 }} animation="wave" />
+        <Skeleton height={100} sx={{ mt: 2 }} animation="wave" />
       </Box>
     );
   }
