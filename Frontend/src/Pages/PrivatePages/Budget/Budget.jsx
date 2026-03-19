@@ -40,10 +40,10 @@ function Budget() {
   //   }
   // }, [dispatch, userId, isBudgetStale,categoryStatus,categoriesFetched]);
     useEffect(() => {
-      if (userId && isBudgetStale && status === 'idle') {
-        dispatch(fetchBudget());
-      }
-    }, [dispatch, userId, isBudgetStale, status]);
+    if (userId && isBudgetStale && status !== 'loading') {
+      dispatch(fetchBudget());
+    }
+  }, [dispatch, userId, isBudgetStale, status]);
 
     useEffect(() => {
       if (!categoriesFetched && categoryStatus === 'idle') {

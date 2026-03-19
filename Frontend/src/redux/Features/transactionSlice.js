@@ -90,7 +90,7 @@ const transactionSlice = createSlice({
     extraReducers: (builder) => {
         builder
         .addCase(fetchTransactions.pending, (state) => {
-            state.status = 'loading';
+            state.status = 'loading'; // Keep loading for initial fetch
         }) 
         .addCase(fetchTransactions.fulfilled, (state, action) => {
             state.status = 'succeeded';
@@ -115,12 +115,10 @@ const transactionSlice = createSlice({
             state.status = 'failed';
             state.error = action.payload;
         })
-        .addCase(addTransaction.pending, (state) => {
-            state.status = 'loading';
+        .addCase(addTransaction.pending, () => {
+            // REMOVED: state.status = 'loading'; to prevent UI flickering
         })
         .addCase(addTransaction.fulfilled, (state, action) => {
-            state.status = 'succeeded';
-            
             // Push instead of unshift, then apply strict sorting
             state.transactions.push(action.payload.transaction);
             state.transactions.sort((a, b) => {
@@ -133,14 +131,12 @@ const transactionSlice = createSlice({
             state.isDashboardStale = true;
         })
         .addCase(addTransaction.rejected, (state, action) => {
-            state.status = 'failed';
             state.error = action.payload;
         })
-        .addCase(editTransaction.pending, (state) => {
-            state.status = 'loading';
+        .addCase(editTransaction.pending, () => {
+            // REMOVED: state.status = 'loading'; to prevent UI flickering
         })
         .addCase(editTransaction.fulfilled, (state, action) => {
-            state.status = 'succeeded';
             const index = state.transactions.findIndex(t => t._id === action.payload.transaction._id);
             if (index !== -1) {
                 state.transactions[index] = { ...action.payload.transaction };
@@ -153,27 +149,25 @@ const transactionSlice = createSlice({
                     return b._id.localeCompare(a._id); 
                 });
             }
-            // state.isTransactionsStale = true; 
             state.isDashboardStale = true;
         })
         .addCase(editTransaction.rejected, (state, action) => {
-            state.status = 'failed';
             state.error = action.payload;
         })
-        .addCase(deleteTransaction.pending, (state) => {
-            state.status = 'loading';
+        .addCase(deleteTransaction.pending, () => {
+            // REMOVED: state.status = 'loading'; to prevent UI flickering 4 seconds later
         })
         .addCase(deleteTransaction.fulfilled, (state, action) => {
-            state.status = 'succeeded';
             state.transactions = state.transactions.filter(t => t._id !== action.payload.transactionId);
-            // state.isTransactionsStale = true; 
             state.isDashboardStale = true;
         })
         .addCase(deleteTransaction.rejected, (state, action) => {
-            state.status = 'failed';
             state.error = action.payload;
         })
         .addCase(fetchDashboardSummary.pending, (state) => {
+            // It's okay to keep loading here if Dashboard has its own skeletons, 
+            // but normally you might use a separate 'dashboardStatus' variable.
+            // Leaving as is if it works well for you.
             state.status = 'loading';
         })
         .addCase(fetchDashboardSummary.fulfilled, (state, action) => {

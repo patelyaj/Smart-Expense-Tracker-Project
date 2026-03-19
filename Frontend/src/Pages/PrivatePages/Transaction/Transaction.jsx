@@ -313,7 +313,7 @@ const Transaction = () => {
           </Stack>
         )}
 
-        {Object.keys(groupedTransactions).length === 0 && status !== "loading" && (
+        {Object.keys(groupedTransactions).length === 0 && status !== "loading" && page === 1 && (
           <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 3, border: (theme) => `1px dashed ${theme.palette.divider}` }} elevation={0}>
             <Typography variant="h6" color="text.secondary">
               No transactions found for these filters.
@@ -322,7 +322,7 @@ const Transaction = () => {
         )}
 
         {/* Transactions list with Infinite Scroll */}
-        {status !== "loading" && Object.keys(groupedTransactions).length > 0  && (
+        {Object.keys(groupedTransactions).length > 0  && (
           <InfiniteScroll
             dataLength={transactions.length}
             next={fetchMoreData}

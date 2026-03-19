@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import dayjs from "dayjs";
 import {
@@ -8,20 +8,24 @@ import {
 import { DatePicker } from "@mui/x-date-pickers";
 import { toast } from "react-toastify";
 
-import {
-  addTransaction, editTransaction
-} from "../../../redux/Features/transactionSlice";
+import { addTransaction, editTransaction } from "../../../redux/Features/transactionSlice";
 import { markCategoriesStale } from "../../../redux/Features/categorySlice";
+import { fetchBudget } from "../../../redux/Features/budgetSlice";
 
 const TransactionModal = ({ onClose, mode = "add", existingData = null, userId }) => {
   const dispatch = useDispatch();
 
   const { categories } = useSelector((state) => state.category);
   const { income, expense } = useSelector((state) => state.transaction);
-  const { progressBudgets } = useSelector((state) => state.budget);
+  const { progressBudgets, status: budgetStatus } = useSelector((state) => state.budget);
 
-  // Added local loading state for submission
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (userId && (!progressBudgets || progressBudgets.length === 0) && budgetStatus !== 'loading') {
+      dispatch(fetchBudget());
+    }
+  }, [dispatch, userId, progressBudgets, budgetStatus]);
 
   const existingCategoryName = existingData?.category?.name || existingData?.category || "";
 
@@ -46,76 +50,79 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId }
     }
 
     setIsSubmitting(true);
-
-    const payload = {
-      ...formData,
-      userId,
-      amount: Number(formData.amount)
-    };
+    const amountNum = Number(formData.amount);
+    const payload = { ...formData, userId, amount: amountNum };
 
     try {
+      // 1. Perform the Add or Edit API Call
       if (mode === "add") {
         await dispatch(addTransaction(payload)).unwrap();
-        
-        // Check if this category is brand new
-        const isNewCategory = !categories.some(
-            (cat) => cat.name.toLowerCase() === formData.category.toLowerCase() && cat.type === formData.type
-        );
-        
-        if (isNewCategory) {
-            // Mark state as stale. The useEffect in the parent component will handle the single fetch.
-            dispatch(markCategoriesStale());
-        }
-
-        const amountNum = Number(formData.amount);
-        if (formData.type === "income") {
-          toast.success(`Awesome! Added \u20B9${amountNum} to income!`);
-        } else if (formData.type === "expense") {
-          let budgetAlertFired = false;
-          const matchingBudgets = progressBudgets?.filter(b => b.category?.name === formData.category);
-
-          if (matchingBudgets?.length > 0) {
-            matchingBudgets.forEach(budget => {
-              const newSpent = budget.spent + amountNum;
-              const percentage = newSpent / budget.limit;
-              const periodText = budget.period ? budget.period.charAt(0).toUpperCase() + budget.period.slice(1) : "";
-
-              if (percentage >= 1) {
-                toast.error(`Red Alert: Exceeded your ${periodText} ${formData.category} budget!`);
-                budgetAlertFired = true;
-              } else if (percentage >= 0.9) {
-                toast.warn(`Careful! Over 90% of your ${periodText} ${formData.category} budget used.`);
-                budgetAlertFired = true;
-              }
-            });
-          }
-
-          if (income > 0 && !budgetAlertFired) {
-            const overallPct = (expense + amountNum) / income;
-            if (overallPct >= 0.9) toast.error(`Warning: Spent 90% of total income this month!`);
-            else toast.success("Transaction added successfully.");
-          } else if (!budgetAlertFired) {
-            toast.success("Transaction added successfully.");
-          }
-        }
       } else {
-        await dispatch(editTransaction({ 
-          transactionId: existingData._id, 
-          updatedData: payload 
-        })).unwrap();
+        await dispatch(editTransaction({ transactionId: existingData._id, updatedData: payload })).unwrap();
+      }
 
-        // Also check if they edited to a new category
-        const isNewCategory = !categories.some(
-            (cat) => cat.name.toLowerCase() === formData.category.toLowerCase() && cat.type === formData.type
-        );
-        if (isNewCategory) {
-            // Mark state as stale.
-            dispatch(markCategoriesStale());
+      // 2. Refresh categories if a new one was typed
+      const isNewCategory = !categories.some(
+          (cat) => cat.name.toLowerCase() === formData.category.toLowerCase() && cat.type === formData.type
+      );
+      if (isNewCategory) {
+          dispatch(markCategoriesStale());
+      }
+
+      // 3. SMART BUDGET ALERTS (Works for both Add and Edit)
+      if (formData.type === "income") {
+        toast.success(mode === "add" ? `Awesome! Added ₹${amountNum} to income!` : "Income transaction updated successfully.");
+      } 
+      else if (formData.type === "expense") {
+        let budgetAlertFired = false;
+        const matchingBudgets = progressBudgets?.filter(b => b.category?.name === formData.category);
+
+        if (matchingBudgets?.length > 0) {
+          matchingBudgets.forEach(budget => {
+            // Calculate how much EXTRA money we are adding to the budget in this action
+            let effectiveAdded = amountNum;
+            
+            // If we are editing, and the category stayed the same, only add the difference!
+            if (mode === "edit" && existingData?.type === "expense" && existingCategoryName === formData.category) {
+              effectiveAdded = amountNum - Number(existingData.amount);
+            }
+
+            const newSpent = budget.spent + effectiveAdded;
+            const limit = budget.limit || 1; 
+            const percentage = newSpent / limit;
+            const periodText = budget.period ? budget.period.charAt(0).toUpperCase() + budget.period.slice(1) : "";
+
+            // Only fire the warning if the edit actually increased the budget usage
+            if (percentage >= 1 && effectiveAdded > 0) {
+              toast.error(`Red Alert: Exceeded your ${periodText} ${formData.category} budget!`);
+              budgetAlertFired = true;
+            } else if (percentage >= 0.9 && effectiveAdded > 0) {
+              toast.warn(`Careful! Over 90% of your ${periodText} ${formData.category} budget used.`);
+              budgetAlertFired = true;
+            }
+          });
         }
 
-        toast.success("Transaction updated successfully.");
+        // Overall income limit check
+        if (income > 0 && !budgetAlertFired) {
+          let effectiveTotalAdded = amountNum;
+          if (mode === "edit" && existingData?.type === "expense") {
+              effectiveTotalAdded = amountNum - Number(existingData.amount);
+          }
+          const overallPct = (expense + effectiveTotalAdded) / income;
+          
+          if (overallPct >= 0.9 && effectiveTotalAdded > 0) {
+            toast.error(`Warning: Spent 90% of total income this month!`);
+            budgetAlertFired = true;
+          }
+        }
+
+        // If no warning fired, show the normal success message
+        if (!budgetAlertFired) {
+          toast.success(mode === "add" ? "Transaction added successfully." : "Transaction updated successfully.");
+        }
       }
-      
+
       onClose();
     } catch (error) {
       console.error("Save Error:", error);
@@ -216,4 +223,4 @@ const TransactionModal = ({ onClose, mode = "add", existingData = null, userId }
   );
 };
 
-export default TransactionModal;
+export default TransactionModal;  

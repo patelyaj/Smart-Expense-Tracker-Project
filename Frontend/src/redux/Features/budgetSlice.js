@@ -126,9 +126,18 @@ const budgetSlice = createSlice({
       })
       .addCase(deleteBudget.fulfilled, (state, action) => {
         state.status = "succeeded";
+        
+        // 1. Remove from the basic budgets array
         state.budgets = state.budgets.filter(
           (b) => b._id !== action.payload.budgetId
         );
+        
+        // 2. THIS WAS MISSING: Remove from the progressBudgets array (what the UI actually shows)
+        state.progressBudgets = state.progressBudgets.filter(
+          (b) => b._id !== action.payload.budgetId
+        );
+        
+        // 3. Flag it as stale so the next time you load the page it gets a fresh copy
         // state.isBudgetStale = true;
       })
       .addCase(deleteBudget.rejected, (state, action) => {
@@ -137,7 +146,7 @@ const budgetSlice = createSlice({
       })
 
       // --- CROSS-SLICE LISTENING ---
-      // If a transaction happens, budget progress is outdated!
+// We listen directly to the successful transaction events to flag the budget as stale!
       .addCase("transaction/addTransaction/fulfilled", (state) => { 
         state.isBudgetStale = true; 
       })
@@ -147,6 +156,7 @@ const budgetSlice = createSlice({
       .addCase("transaction/deleteTransaction/fulfilled", (state) => { 
         state.isBudgetStale = true; 
       })
+      
       .addCase(fetchBudget.pending, (state) => {
         state.status = "loading";
         state.error = null;
